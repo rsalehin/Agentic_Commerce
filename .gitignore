@@ -1,0 +1,13 @@
+.venv/
+__pycache__/
+*.pyc
+.env
+data/*.db
+fixtures/keys/*
+!fixtures/keys/.gitkeep
+ui/node_modules/
+ui/dist/
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+docs/INTERVIEW_DAY.md
