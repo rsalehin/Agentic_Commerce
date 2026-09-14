@@ -1,0 +1,55 @@
+{
+  "keys": [
+    {
+      "kty": "OKP",
+      "crv": "Ed25519",
+      "x": "YAuvlCX2XT7TTMAKDyFztLwSQMbGAW-JbS8-T4zX4kU",
+      "use": "sig",
+      "alg": "EdDSA",
+      "kid": "mock-bundesdruckerei",
+      "role": "issuer"
+    },
+    {
+      "kty": "OKP",
+      "crv": "Ed25519",
+      "x": "-oo96orvStTrniCTGrJuYYqRbPcxM_i7avfPRvYZTn8",
+      "use": "sig",
+      "alg": "EdDSA",
+      "kid": "fonds-ag-2026",
+      "role": "provider"
+    },
+    {
+      "kty": "OKP",
+      "crv": "Ed25519",
+      "x": "iBIV97JDwk_gC79NJuFvn-Ru1BmYAzYAY5rXPAGni_Q",
+      "use": "sig",
+      "alg": "EdDSA",
+      "kid": "holder-lena",
+      "role": "holder",
+      "did": "did:key:z6MkocRVEQ2Ycq7UeJbCtEe3MrADTnx4pYA1ZgNg9w2NFE3D",
+      "persona": "lena"
+    },
+    {
+      "kty": "OKP",
+      "crv": "Ed25519",
+      "x": "NOkhylsJddpR9RL59nKq-e0sACExeJlCsdwBGxmh0xc",
+      "use": "sig",
+      "alg": "EdDSA",
+      "kid": "holder-marco",
+      "role": "holder",
+      "did": "did:key:z6Mki1oRq1MrTDv2ppv93Wr27oRFsfpK5AQxBMhFtpYu3eaz",
+      "persona": "marco"
+    },
+    {
+      "kty": "OKP",
+      "crv": "Ed25519",
+      "x": "161Wv3tm0gW4BeSAV2KXwOyGLnfpmP9xo8O4UiqU82A",
+      "use": "sig",
+      "alg": "EdDSA",
+      "kid": "holder-sanction_test",
+      "role": "holder",
+      "did": "did:key:z6MktyB15sPrUdoVt9Dm6mGNnVs6uyCxZdvtw7Xwdm1VtwEX",
+      "persona": "sanction_test"
+    }
+  ]
+}
