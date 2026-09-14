@@ -9,6 +9,9 @@ import os
 
 from dotenv import load_dotenv
 from fastapi import FastAPI
+from fastapi.responses import JSONResponse
+
+from gateway.card import provider_jwks, signed_card
 
 SERVICE = "gateway"
 DEFAULT_PORT = 8080
@@ -20,6 +23,14 @@ def create_app() -> FastAPI:
     @app.get("/health")
     def health() -> dict[str, str]:
         return {"status": "ok", "service": SERVICE}
+
+    @app.get("/.well-known/agent-card.json")
+    def agent_card() -> JSONResponse:
+        return JSONResponse(signed_card())
+
+    @app.get("/.well-known/jwks.json")
+    def jwks() -> JSONResponse:
+        return JSONResponse(provider_jwks())
 
     return app
 
