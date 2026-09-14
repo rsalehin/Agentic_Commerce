@@ -1,0 +1,13 @@
+.venv/
+.git/
+.github/
+**/__pycache__/
+*.pyc
+ui/node_modules/
+ui/dist/
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+fixtures/keys/
+data/
+.env
