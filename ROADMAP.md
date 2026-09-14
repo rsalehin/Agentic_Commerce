@@ -8,11 +8,11 @@ Legend: **G** gateway · **A** agent · **W** wallet · **C** core · **U** ui �
 
 ## Phase 0 — Skeleton (target: 1 session)
 
-- [ ] **P0-01 (D)** Confirm `docs/` skeleton is complete: 00–06 specs, ADR-01..10, deprecation register, demo script, glossary, `docs/README.md`. Fill nothing new; only fix inconsistencies you find and list them in the plan.
-- [ ] **P0-02** `pyproject.toml` (uv workspace with `gateway`, `agent`, `wallet`, `core` packages), `ruff`, `mypy`, `pytest` config, `.env.example`, `.gitignore`, `README.md` quick start.
-- [ ] **P0-03 (W)** `wallet/keys.py`: generate Ed25519 key pairs on first run into `fixtures/keys/` (issuer `mock-bundesdruckerei`, provider `fonds-ag`, one holder key per persona), export public JWKs to `fixtures/jwks.public.json`.
-- [ ] **P0-04** `run.ps1` + `docker-compose.yml` starting gateway/wallet/core/ui with port checks. Health endpoints on all services.
-- [ ] **P0-05** CI: GitHub Actions running ruff + mypy + pytest on push.
+- [x] **P0-01 (D)** Confirm `docs/` skeleton is complete: 00–06 specs, ADR-01..10, deprecation register, demo script, glossary, `docs/README.md`. Fill nothing new; only fix inconsistencies you find and list them in the plan. — `b4f546f`
+- [x] **P0-02** `pyproject.toml` (uv-managed project packaging the flat `gateway`, `agent`, `wallet`, `core` packages), `ruff`, `mypy`, `pytest` config, `.env.example`, `.gitignore`, `README.md` quick start. — `131dfc6`
+- [x] **P0-03 (W)** `wallet/keys.py`: generate Ed25519 key pairs on first run into `fixtures/keys/` (issuer `mock-bundesdruckerei`, provider `fonds-ag-2026`, one holder key per persona), export public JWKs to `fixtures/jwks.public.json`. — `30ecfc7`
+- [x] **P0-04** `run.ps1` + `docker-compose.yml` starting gateway/wallet/core/ui with port checks. `/health` endpoints on the three backends (UI: run.ps1 verifies Vite binds 5174). — `66f9e78`
+- [x] **P0-05** CI: GitHub Actions running ruff + mypy + pytest on push. — `480cdc6`
 
 **Acceptance:** `uv run pytest` passes (smoke tests), `run.ps1` prints four healthy services, CI green.
 
