@@ -137,14 +137,14 @@ in: `{ "session_id" }` — out: `data: { "state", "blocked_from", "reason_codes"
 
 ## 4. Agent-local tools (not exposed by the gateway)
 
-- `discovery.verify(url)` → `{ "verified": bool, "card": {...}, "fingerprint": "sha256:…", "reason": "PROVIDER_UNVERIFIED|CARD_SIGNATURE_INVALID"|null }`. Steps: (1) `url`'s domain must be in `fixtures/provider-directory.json`; (2) the card signature must verify against the **pinned kid** from the directory (not merely the JWKS the card points to); (3) no PII is sent before both pass.
+- `discovery.verify(url)` → `{ "verified": bool, "card": {...}, "fingerprint": "sha256:…", "reason": "PROVIDER_UNVERIFIED|CARD_SIGNATURE_INVALID|ONBOARDING_UNSUPPORTED"|null }`. Steps: (1) the domain in the card's `provider.url` must be in `fixtures/provider-directory.json` (else `PROVIDER_UNVERIFIED`); (2) the card signature must verify against the **pinned key** for that domain, loaded from a trusted local keystore by `pinned_kid` (not the JWKS the card points to), and the signature's `kid` must equal `pinned_kid` (else `CARD_SIGNATURE_INVALID`) — this refuses both a lookalike domain and a same-domain key substitution; (3) the trusted card must advertise `onboarding.v1` in `skills[]`, `capabilities.onboarding=="v1"` and an `mcp` `supportedInterfaces` entry (else `ONBOARDING_UNSUPPORTED`); (4) no PII is sent before `verified=true`.
 - `wallet.present_pid(requested_claims, nonce, aud)` → SD-JWT VC presentation (selective disclosure + KB-JWT).
 - `wallet.sign(payload, purpose)` → holder JWS (mandate, tax declaration, snapshot). **Only callable after `ask_human` approved that payload.**
 - `ask_human(question_de, payload_to_confirm?, mode?)` → `{ "approved": bool, "answer": str }`. `mode: "warning_ack"` handles a `PRODUCT_OUTSIDE_UNLOCKED` §63(10) warning (customer acknowledges or drops the class). Rendered as buttons; in replay mode answered from the recording.
 
 ## 5. Error / reason codes
 
-Envelope error codes: `WRONG_STATE`, `MANDATE_INVALID`, `MANDATE_EXPIRED`, `MANDATE_SCOPE_EXCEEDED`, `MANDATE_REVOKED`, `AGENT_UNVERIFIED`, `CLIENT_UNREGISTERED`, `SENDER_BINDING_INVALID`, `PRESENTATION_INVALID`, `SIGNATURE_INVALID`, `SNAPSHOT_STALE`, `PROVISIONING_UNCERTAIN`, `REJECTED`, `INTERNAL`. Discovery (agent-side): `PROVIDER_UNVERIFIED`, `CARD_SIGNATURE_INVALID`. Policy reason codes and outcomes: see `docs/03` (`IN_REVIEW` is the masked AML value; `REVIEW_REJECTED` is the terminal compliance/adviser DENY).
+Envelope error codes: `WRONG_STATE`, `MANDATE_INVALID`, `MANDATE_EXPIRED`, `MANDATE_SCOPE_EXCEEDED`, `MANDATE_REVOKED`, `AGENT_UNVERIFIED`, `CLIENT_UNREGISTERED`, `SENDER_BINDING_INVALID`, `PRESENTATION_INVALID`, `SIGNATURE_INVALID`, `SNAPSHOT_STALE`, `PROVISIONING_UNCERTAIN`, `REJECTED`, `INTERNAL`. Discovery (agent-side): `PROVIDER_UNVERIFIED`, `CARD_SIGNATURE_INVALID`, `ONBOARDING_UNSUPPORTED`. Policy reason codes and outcomes: see `docs/03` (`IN_REVIEW` is the masked AML value; `REVIEW_REJECTED` is the terminal compliance/adviser DENY).
 
 ## 6. Ops/adviser HTTP API (Phase 2)
 
