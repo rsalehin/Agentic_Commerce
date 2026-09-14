@@ -7,7 +7,9 @@ Prototype for the TRUSTEQ case study "Agentic Commerce im Finanzvertrieb". A cus
 uv sync
 .\run.ps1           # starts gateway :8080, wallet :8081, core :8082, ui :5174
 ```
-Docker: `docker compose up`.
+Docker: `docker compose up` (compose file + Dockerfile are provided and the
+compose config validates, but the image build has not yet been run/verified —
+treat it as untested until someone runs it).
 
 ## Layout
 See `CLAUDE.md` §4. Specs and interview deliverables live in `docs/`.

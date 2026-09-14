@@ -23,7 +23,7 @@ Deliverables for the interview: the running demo, `docs/` (Ist-Analyse, Zielkonz
 
 ## 3. Stack (fixed — do not introduce alternatives without an ADR)
 
-- Python 3.12, `uv` for env/deps (`.venv` at repo root), `ruff` + `mypy --strict` on `gateway/`, `pytest` with `pytest-asyncio`.
+- Python 3.12, `uv` for env/deps (`.venv` at repo root), `ruff` + `mypy --strict` on `gateway/`, `pytest` with `pytest-asyncio`. **A single `uv`-managed project** (root `pyproject.toml`) packaging the four flat top-level packages `gateway/`, `agent/`, `wallet/`, `core/` and sharing one `.venv` — deliberately not four separately-built workspace members, because the flat layout (e.g. `gateway/rules/rules.yaml`) requires each service directory to be its own importable top-level package. Run services with `python -m <pkg>.app` from the repo root.
 - Gateway: FastAPI, **FastMCP** (Streamable HTTP transport), pydantic v2, SQLModel + SQLite (`data/demo.db`), `PyJWT` + `cryptography` for JWS (Ed25519 preferred, ES256 accepted), SD-JWT via `sd-jwt` (fallback: in-house `wallet/sdjwt.py` implementing JWS + disclosures — keep the interface identical).
 - Agent: Anthropic Python SDK with tool use (model configurable via `AGENT_MODEL`), official `mcp` client package; `agent/llm/` has a provider abstraction so DeepSeek (OpenAI-compatible) works too.
 - UI: React 18 + Vite + TypeScript + Tailwind. `strictPort: true`, port `5174`. Data via SSE from the gateway (`/events`).
