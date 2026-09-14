@@ -147,6 +147,15 @@ This is the heavy step. The **GwG** obliges banks to identify and verify every n
 - The customer picks a fund/ETF, sees the **BIB/KID** and the **ex-ante Kosteninformation** for that product, passes the **Zielmarkt** check (the manufacturer's defined target market vs. the customer's category/knowledge), possibly gets a **Warnhinweis**, confirms with SCA.
 - The provider must report each executed order on a durable medium (**§ 63 Abs. 12 WpHG**) and send annual **ex-post Kosteninformation**.
 
+### Additional process rows folded in from the dossier (P1-00)
+
+- **P02 – Eligibility (Berechtigung), before master data:** adulthood (§ 106 ff. BGB), permitted account type, residence/market in scope. In our flow this is an explicit gate (`ID_UNDERAGE`, `ID_NON_EU_DOCUMENT`), not an afterthought.
+- **P03 – Access & contact channel:** establishing the contact channel (email confirmation, app link) is **not** KYC and must not be presented as identity verification.
+- **P15 – Ongoing monitoring & retention:** periodic re-screening (sanctions/PEP), transaction monitoring, and record retention are part of the lifecycle, not the opening. **Retention (precise):** GwG **5 years** (destruction by year 10 at the latest); WpHG **5 years** (**+2** for order/transaction records). *(Earlier drafts said "5–10" loosely.)*
+- **Handoff legal basis:** **Art. 246b § 3 (3) EGBGB** gives the customer a right to **human intervention on request** when online tools are used — the legal basis for the "Berater/Mensch anfordern" button.
+
+> Friction figures below are **Branchenangaben aus Sekundärquellen** (industry figures from secondary sources), never the client's own numbers.
+
 ---
 
 ## 3. The regulatory map in plain language

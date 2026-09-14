@@ -8,8 +8,11 @@
 | 03_state-machine.md | States, transitions, reason codes, audit event — **source of truth** | gateway/state.py |
 | 04_annahmen.md | Assumptions and out-of-scope list | Deck, Q&A |
 | 05_tool-contracts.md | Agent Card, mandate, MCP tool I/O, error codes — **source of truth** | gateway/tools, agent |
-| 06_rules.md | Human-readable rules catalogue (generated from gateway/rules/rules.yaml) | Deck, Q&A |
-| decisions/ | ADR-01..10 = Entscheidungslog required by the case | Deck |
+| 06_rules.md | Human-readable rules catalogue (generated from gateway/rules/rules.yaml, v1.1.0) | Deck, Q&A |
+| 07_dossier-contrast.md | Our plan vs. the external research dossier (merge decisions) | P1-00, Q&A |
+| P1-00_spec-update.md | Spec-update decisions applied before Phase 1 (from 07) | ROADMAP P1-00 |
+| test-plan.md | Adversarial/negative-test backlog (dossier T-cases → our reason codes) | Phases 1–3 |
+| decisions/ | ADR-01..12 = Entscheidungslog required by the case | Deck |
 | deprecation-register.md | Standards and their expected end-of-life | ADR-10, deck |
 | demo-script.md | 10-minute presentation + live demo script | Interview |
 | glossar.md | DE/EN glossary | Everyone |

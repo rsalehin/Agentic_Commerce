@@ -17,19 +17,25 @@ from wallet.keys import (
 )
 
 PERSONAS = ["lena", "marco", "sanction_test"]
+SERVICE_KIDS = {"volksbank-leipzig", "agent-kundenagent-demo"}
 
 
 def _fresh(fixtures_dir: Path) -> KeyRegistry:
     return ensure_keys(fixtures_dir=fixtures_dir, persona_ids=PERSONAS)
 
 
+def _expected_kids() -> set[str]:
+    return {ISSUER_KID, PROVIDER_KID, *(f"holder-{p}" for p in PERSONAS), *SERVICE_KIDS}
+
+
 def test_first_run_creates_private_keys_and_jwks(tmp_path: Path) -> None:
     reg = _fresh(tmp_path)
     keys_dir = tmp_path / "keys"
-    expected = {ISSUER_KID, PROVIDER_KID, *(f"holder-{p}" for p in PERSONAS)}
-    assert {p.stem.removesuffix(".private") for p in keys_dir.glob("*.private.pem")} == expected
+    stems = {p.stem.removesuffix(".private") for p in keys_dir.glob("*.private.pem")}
+    assert stems == _expected_kids()
     assert (tmp_path / "jwks.public.json").exists()
     assert set(reg.holders) == set(PERSONAS)
+    assert set(reg.services) == SERVICE_KIDS
 
 
 def test_idempotent_no_overwrite(tmp_path: Path) -> None:
@@ -48,7 +54,7 @@ def test_jwks_has_expected_kids_and_is_valid_okp(tmp_path: Path) -> None:
     _fresh(tmp_path)
     jwks = json.loads((tmp_path / "jwks.public.json").read_text(encoding="utf-8"))
     kids = {k["kid"] for k in jwks["keys"]}
-    assert kids == {ISSUER_KID, PROVIDER_KID, *(f"holder-{p}" for p in PERSONAS)}
+    assert kids == _expected_kids()
     for k in jwks["keys"]:
         assert k["kty"] == "OKP"
         assert k["crv"] == "Ed25519"

@@ -1,6 +1,6 @@
 # ADR-03: Identity verification method
 
-**Status:** proposed · **Date:** 2026-09-14 · **Deciders:** Abir (author), reviewed with Claude Code
+**Status:** accepted · **Date:** 2026-09-14 (rev. P1-00) · **Deciders:** Abir (author), reviewed with Claude Code
 
 ## Entscheidung (what had to be decided)
 Which identification method does the 2030 flow rely on?
@@ -21,3 +21,5 @@ Regulatorik · Vertrauen/Sicherheit · Deprecation-Risiko · Kosten/Aufwand im M
 
 ## Konsequenzen / Umsetzung
 `IdentityVerifier` port; adapters `wallet_sdjwt` and `eid_stub`; config `IDENTITY_VERIFIER`.
+
+**SD-JWT implementation (P1-00 decision):** implement SD-JWT VC in-house in `wallet/sdjwt.py` (JWS + `_sd` disclosures + KB-JWT, real EdDSA via PyJWT/cryptography) rather than depend on the `sd-jwt` PyPI package — fewer Windows install risks, and the `IdentityVerifier` port stays identical if we later swap in the library. The issuer JWKS is served by the wallet at its own origin; holder key binding (`cnf`) is the persona's `holder-<id>` key (the same key that signs the mandate), which makes `R-ID-05` meaningful.

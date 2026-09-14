@@ -50,6 +50,25 @@
       "role": "holder",
       "did": "did:key:z6MktyB15sPrUdoVt9Dm6mGNnVs6uyCxZdvtw7Xwdm1VtwEX",
       "persona": "sanction_test"
+    },
+    {
+      "kty": "OKP",
+      "crv": "Ed25519",
+      "x": "iGwdHzR1QK_CGqQKp_XDezMGTD5ZAhRatXRvO-sayi4",
+      "use": "sig",
+      "alg": "EdDSA",
+      "kid": "volksbank-leipzig",
+      "role": "partner"
+    },
+    {
+      "kty": "OKP",
+      "crv": "Ed25519",
+      "x": "ywLSVF7O0wDVatxQ72_HvCuTmldQI3Diy0gBnGwRFNA",
+      "use": "sig",
+      "alg": "EdDSA",
+      "kid": "agent-kundenagent-demo",
+      "role": "agent_client",
+      "did": "did:key:z6Mkt7jJZSJBBoRN3zBjcANP5yA78ckxuXc3tbpKUMYruEqD"
     }
   ]
 }

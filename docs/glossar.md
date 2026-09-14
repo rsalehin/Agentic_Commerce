@@ -25,5 +25,11 @@
 | Mandat / Intent Mandate | Signed, scoped user authorisation held by the agent |
 | Agent Card | Signed machine-readable description of an agent/provider (A2A) |
 | MCP | Model Context Protocol — tool interface for agents |
-| Human-in-the-loop / HUMAN_REQUIRED | Step where a person must decide |
+| Human-in-the-loop / CUSTOMER_REQUIRED / REVIEW_REQUIRED | Step where a person must act — the *customer* (declare/sign/acknowledge) vs *staff* (adviser/compliance) |
 | Kanalkonflikt | Channel conflict between direct and partner-bank sales |
+| service_mode | Classification of the securities service at opening: `account_only` (appropriateness NOT_REQUIRED) / `non_advised` / `advised` (§ 63 Abs. 10/11 WpHG) |
+| Snapshot / snapshot_digest | Immutable revision of application + product/pricing version + document hashes that the customer confirms; a material change invalidates the confirmation |
+| Referral receipt | JWS signed by the partner bank binding a referred customer/product to the application (channel attribution) |
+| Sender proof (x-sender-proof) | DPoP-shaped JWS by the agent instance key binding a call to a registered client (technical access control) |
+| RECONCILING | Provisioning result was ambiguous/timeout; resolved by `get_opening_status`, never by a second create |
+| IN_REVIEW | Masked status shown to the agent for a confidential AML review (GwG § 47) |

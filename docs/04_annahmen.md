@@ -9,6 +9,11 @@
 6. Der Kundenagent läuft auf einer fremden Plattform und ist nicht vertrauenswürdig; jede Aussage wird kryptografisch geprüft.
 7. Zivilrechtlich ist der Agent kein Stellvertreter; Erklärungen werden dem Kunden im Rahmen des Mandats zugerechnet. Steuerliche Selbstauskunft und Vertrag signiert der Kunde selbst (QES im Wallet).
 8. Das Verrechnungskonto wird bei der Depotbank geführt; Referenzkonto per IBAN-Namensabgleich (kein echtes Open Banking im MVP).
+9. **Sanktions-/PEP-Treffer werden durch die Compliance geprüft, nie automatisch abgelehnt** (Listentreffer = mögliche Übereinstimmung; § 47 GwG Vertraulichkeit — der Kunde sieht nur „in Prüfung").
+10. **QES über das Wallet ist eine Designentscheidung, keine gesetzliche Pflicht** für den Depotvertrag; die Bestätigung eines unveränderlichen Snapshots plus Empfangsbeleg ist der Kern.
+11. **Der Agent-Betreiber ist ein registrierter Client**, kein zugelassener Finanzintermediär; technische Zugriffskontrolle über Client-Registrierung + Sender-Bindung, rechtliche Zurechnung über das Mandat.
+12. **API-first**: die kanonische Schnittstelle ist REST/OpenAPI; MCP/A2A sind Adapter über dieselben Kommandos — dieselbe Policy für beide.
+13. **AI-Act-Daten sind vor der Präsentation gegen die Änderung vom Juli 2026 zu verifizieren** (Hochrisiko-Fristen ggf. Dez 2027 / Aug 2028; Art. 50 Datum prüfen).
 
 ## Bewusst außerhalb des Prototyps (Out of scope)
 - Echte OpenID4VP/DC-API-Wallet-Integration, echte eID/AusweisApp, echtes VideoIdent
@@ -19,6 +24,8 @@
 
 ## Offene Fragen an den Kunden (für die Präsentation)
 - Welche Gesellschaft ist GwG-Verpflichtete – KVG oder Depotbank?
+- Welche Einheit nimmt den Vertrag an (Depotbank/KVG) – eigener Akt „bank acceptance"?
 - Dürfen über den Agentenkanal auch Nicht-Kunden der Partnerbanken aufgenommen werden?
 - Soll Beratung jemals über Agenten erfolgen?
 - Welche Nationalitäten/Märkte sind im Scope?
+- Provisions-/Attributionsregeln bei agent-initiierter, partnerbank-betreuter Eröffnung?

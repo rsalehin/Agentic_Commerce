@@ -13,13 +13,15 @@ Deliverables for the interview: the running demo, `docs/` (Ist-Analyse, Zielkonz
 ## 2. Non-negotiable principles
 
 1. **Policy lives in code, never in a prompt.** The gateway validates every tool call against the signed mandate and the schema. The LLM extracts arguments and talks to the human; it never decides compliance outcomes.
-2. **Human-only steps are enforced by the gateway.** `onboarding.tax_declaration` and `onboarding.sign_contract` require a signature from the customer's holder key over the exact payload; the agent cannot fabricate it. Failing that → `HUMAN_REQUIRED`.
+2. **Human-only steps are enforced by the gateway.** `onboarding.tax_declaration` and `onboarding.sign_contract` require a signature from the customer's holder key over the exact payload; the agent cannot fabricate it. Failing that → `CUSTOMER_REQUIRED`.
 3. **Real crypto, mocked parties.** Signatures (Ed25519/ES256 JWS), SD-JWT verification and hash-chained audit logs are real. Wallet issuer, BZSt, sanctions list and the bank core are mocks with fixtures. Never "simulate" a verification by returning `True`.
-4. **Every rule cites its legal basis.** `gateway/rules/rules.yaml` entries carry `law:` (e.g. `GwG §10 Abs. 1 Nr. 1`) and `outcome:` (`OK | WARN | HUMAN_REQUIRED | REJECT`). No rule without a citation.
+4. **Every rule cites its legal basis.** `gateway/rules/rules.yaml` (top-level `version`) entries carry `law:` (e.g. `GwG §10 Abs. 1 Nr. 1`) and `outcome:` (`ALLOW | ALLOW_WITH_WARNING | REQUIRE_CUSTOMER | REQUIRE_REVIEW | DENY | ERROR`). No rule without a citation. Every `PolicyDecision` records `policy_version`.
 5. **Ports before adapters.** Standards will churn. Discovery, mandate verification, identity verification and signing are Python `Protocol` interfaces in `gateway/ports/`; concrete implementations live in `gateway/adapters/`. Swapping a standard must touch one adapter and one config line.
 6. **Audit everything.** Every state transition appends `AuditEvent{ts, session_id, actor, from_state, to_state, reason_codes, evidence_hash, prev_hash}`; the chain must verify.
 7. **Demo must survive a dead network.** `agent/replay/` can replay recorded runs without any LLM call. Keep recordings up to date after each phase.
 8. **German user-facing copy, English code and docs.** UI strings, generated customer documents and reason texts are German; identifiers, comments and `docs/` are English (German legal terms kept in bold where they are terms of art).
+9. **API-first — MCP is an adapter.** The canonical contract is versioned REST/OpenAPI; MCP (and later A2A) are 1:1 adapters over the same command handlers. A raw HTTP request must hit the same policy and produce the same audit events as the MCP call (tested in P1-08).
+10. **Compliance cases are confidential.** For `REVIEW_REQUIRED` caused by an `AML_*` code (GwG § 47), the agent/customer sees only `IN_REVIEW` ("Ihr Antrag wird geprüft."); the real reason codes and match details live only in the Ops console and the audit log.
 
 ## 3. Stack (fixed — do not introduce alternatives without an ADR)
 

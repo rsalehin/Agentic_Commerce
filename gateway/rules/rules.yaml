@@ -1,191 +1,246 @@
 # Rules catalogue — every rule cites its legal basis. Loaded by gateway/rules/engine.py.
-# outcome: OK | WARN | HUMAN_REQUIRED | REJECT | ERROR
-#   WARN            continues;
-#   HUMAN_REQUIRED  blocks, stores blocked_from, creates an escalation;
-#   REJECT          terminates the session (transition to REJECTED);
-#   ERROR           guard rejection: returns the error envelope, leaves state unchanged, is retryable
-#                   (see docs/03 "Guards"). Marked with `guard: true`.
-# `when` is a Python expression over the step context (ctx) evaluated by the engine in a restricted namespace.
-# `reason_code` must exist in docs/03_state-machine.md.
+#
+# Top-level shape (v1.1.0): { version, rules: [ ... ] }.
+#
+# outcome: ALLOW | ALLOW_WITH_WARNING | REQUIRE_CUSTOMER | REQUIRE_REVIEW | DENY | ERROR
+#   ALLOW / ALLOW_WITH_WARNING  proceed (forward transition);
+#   REQUIRE_CUSTOMER            -> CUSTOMER_REQUIRED (customer acts; ask_human + resubmit);
+#   REQUIRE_REVIEW             -> REVIEW_REQUIRED (staff: adviser or compliance; escalation queue);
+#   DENY                       -> REJECTED (terminal);
+#   ERROR                      guard rejection: error envelope, state unchanged, retryable
+#                              (marked `guard: true`; see docs/03 "Guards").
+# Aggregation precedence: DENY > REQUIRE_REVIEW > REQUIRE_CUSTOMER > ALLOW_WITH_WARNING > ALLOW
+# (ERROR guards are evaluated before the engine and short-circuit).
+#
+# `guard: true`         pre-rule guard (ERROR); no state change; audited with from==to.
+# `confidential: true`  agent-facing envelope is masked to reason_codes ["IN_REVIEW"] (GwG § 47);
+#                       real codes only in the Ops console + audit log.
+# `informational: true` classifier that records a value (e.g. service_mode); never gates a step.
+# `when` is a Python expression over the step context (ctx), evaluated in a restricted namespace.
+# `reason_code` (when present) must exist in docs/03_state-machine.md.
 
-- id: R-MND-01
-  step: any
-  guard: true
-  law: "BGB §§ 164 ff. (Zurechnung), Mandatsmodell; AP2-Mandate als Vorbild"
-  description: "Every tool call must stay within the signed mandate scope (product classes, amounts, data release). Pre-rule guard: returns the error envelope, state unchanged, retryable."
-  when: "not ctx.call_within_scope"
-  outcome: ERROR
-  reason_code: MANDATE_SCOPE_EXCEEDED
-  message_de: "Die Anfrage überschreitet das vom Kunden erteilte Mandat."
+version: "1.1.0"
 
-- id: R-MND-02
-  step: any
-  guard: true
-  law: "GwG §10 Abs. 1 Nr. 5 (Aktualität), Mandatsmodell"
-  description: "Mandate must not be expired. Pre-rule guard: returns the error envelope, state unchanged, retryable (obtain a fresh mandate)."
-  when: "ctx.mandate.exp < ctx.now"
-  outcome: ERROR
-  reason_code: MANDATE_EXPIRED
-  message_de: "Das Mandat ist abgelaufen. Bitte neu erteilen."
+rules:
+  - id: R-MND-01
+    step: any
+    guard: true
+    law: "BGB §§ 164 ff. (Zurechnung), Mandatsmodell; AP2-Mandate als Vorbild"
+    description: "Every tool call must stay within the signed mandate scope (product classes, amounts, data release). Pre-rule guard: error envelope, state unchanged, retryable."
+    when: "not ctx.call_within_scope"
+    outcome: ERROR
+    reason_code: MANDATE_SCOPE_EXCEEDED
+    message_de: "Die Anfrage überschreitet das vom Kunden erteilte Mandat."
 
-- id: R-MND-03
-  step: any
-  law: "Mandatsmodell (Widerruflichkeit)"
-  description: "Mandate must not be on the holder's revocation list."
-  when: "ctx.mandate.jti in ctx.revoked_mandates"
-  outcome: REJECT
-  reason_code: MANDATE_REVOKED
-  message_de: "Das Mandat wurde widerrufen."
+  - id: R-MND-02
+    step: any
+    guard: true
+    law: "GwG §10 Abs. 1 Nr. 5 (Aktualität), Mandatsmodell"
+    description: "Mandate must not be expired. Pre-rule guard: error envelope, state unchanged, retryable (obtain a fresh mandate)."
+    when: "ctx.mandate.exp < ctx.now"
+    outcome: ERROR
+    reason_code: MANDATE_EXPIRED
+    message_de: "Das Mandat ist abgelaufen. Bitte neu erteilen."
 
-- id: R-MND-04
-  step: start
-  law: "AMLR Art. 20 Abs. 1 lit. i (im Namen des Kunden Handelnde); AI Act Art. 50 (Transparenz)"
-  description: "Agent must identify itself and bind to the verified card fingerprint."
-  when: "not ctx.agent_id or ctx.card_fingerprint != ctx.provider_card_fingerprint"
-  outcome: REJECT
-  reason_code: AGENT_UNVERIFIED
-  message_de: "Der Agent konnte nicht verifiziert werden."
+  - id: R-MND-03
+    step: any
+    law: "Mandatsmodell (Widerruflichkeit); re-checked on every write"
+    description: "Mandate must not be on the holder's revocation list (revocation_url) and the client must not be blocked."
+    when: "ctx.mandate.jti in ctx.revoked_mandates"
+    outcome: DENY
+    reason_code: MANDATE_REVOKED
+    message_de: "Das Mandat wurde widerrufen."
 
-- id: R-ID-01
-  step: identify
-  law: "GwG §12 Abs. 1, §13 Abs. 1; AMLR Art. 22 Abs. 6 lit. b (eIDAS-konforme Identifizierung)"
-  description: "PID presentation must verify (issuer signature, key binding, nonce, audience) at assurance level high/substantial."
-  when: "not ctx.presentation.valid or ctx.presentation.assurance_level not in ('high','substantial')"
-  outcome: HUMAN_REQUIRED
-  reason_code: ID_VERIFICATION_FAILED
-  message_de: "Die Identität konnte nicht elektronisch bestätigt werden."
+  - id: R-MND-04
+    step: start
+    law: "AMLR Art. 20 Abs. 1 lit. i (im Namen des Kunden Handelnde); AI Act Art. 50 (Transparenz)"
+    description: "Agent must identify itself and bind to the verified card fingerprint. Both the call's card_fingerprint and the mandate-embedded (human-approved) fingerprint must match the provider's own card."
+    when: "not ctx.agent_id or ctx.card_fingerprint != ctx.provider_card_fingerprint or ctx.mandate.agent.card_fingerprint != ctx.provider_card_fingerprint"
+    outcome: DENY
+    reason_code: AGENT_UNVERIFIED
+    message_de: "Der Agent konnte nicht verifiziert werden."
 
-- id: R-ID-02
-  step: identify
-  law: "AMLR Art. 22 Abs. 6; RTS Art. 7 (Ausnahme nur wenn eIDAS-Mittel nicht verfügbar)"
-  description: "Non-EU/EEA nationality without eIDAS credential → fallback identification by a human."
-  when: "not any(n in ctx.eu_eea for n in ctx.kyc.nationalities) and ctx.presentation.issuer_trust != 'eidas'"
-  outcome: HUMAN_REQUIRED
-  reason_code: ID_NON_EU_DOCUMENT
-  message_de: "Für Ausweisdokumente außerhalb EU/EWR ist eine persönliche Identifizierung erforderlich."
+  - id: R-MND-05
+    step: any
+    guard: true
+    law: "DORA Art. 28 ff. (IKT-Drittparteien); Zulassung/Registrierung externer Clients"
+    description: "The calling agent client must be registered and active (fixtures/agent-clients.json)."
+    when: "ctx.client_id not in ctx.registered_clients or ctx.client_status != 'active'"
+    outcome: ERROR
+    reason_code: CLIENT_UNREGISTERED
+    message_de: "Der aufrufende Client ist nicht registriert oder gesperrt."
 
-- id: R-ID-03
-  step: identify
-  law: "BGB §§ 106 ff. (beschränkte Geschäftsfähigkeit)"
-  description: "Minors cannot open a Depot via agent."
-  when: "ctx.kyc.age < 18"
-  outcome: HUMAN_REQUIRED
-  reason_code: ID_UNDERAGE
-  message_de: "Minderjährige können ein Depot nur mit gesetzlichen Vertretern eröffnen."
+  - id: R-MND-06
+    step: any
+    guard: true
+    law: "DORA Art. 28 ff.; Sender-Bindung (DPoP-artiger Nachweis) der Willenserklärung an den Client"
+    description: "x-sender-proof must verify: signature by the registered instance key, unused jti, iat within 60 s, and mandate.agent.id must equal the proof client_id."
+    when: "not ctx.sender_proof_valid or ctx.sender_proof_jti in ctx.used_jtis or abs(ctx.now - ctx.sender_proof_iat) > 60 or ctx.mandate.agent.id != ctx.client_id"
+    outcome: ERROR
+    reason_code: SENDER_BINDING_INVALID
+    message_de: "Der Sender-Nachweis des Agenten ist ungültig."
 
-- id: R-ID-04
-  step: identify
-  law: "GwG §10 Abs. 1 Nr. 1 i.V.m. Referenzkontoprinzip"
-  description: "Reference account holder must match identified person."
-  when: "ctx.reference_account and not ctx.reference_account.name_match"
-  outcome: HUMAN_REQUIRED
-  reason_code: NAME_MISMATCH_REFERENCE_ACCOUNT
-  message_de: "Der Kontoinhaber des Referenzkontos stimmt nicht mit der identifizierten Person überein."
+  - id: R-ID-01
+    step: identify
+    law: "GwG §12 Abs. 1, §13 Abs. 1; AMLR Art. 22 Abs. 6 lit. b (eIDAS-konforme Identifizierung)"
+    description: "PID presentation must verify (issuer signature, key binding, nonce, audience) at assurance level high/substantial; otherwise the customer must re-identify."
+    when: "not ctx.presentation.valid or ctx.presentation.assurance_level not in ('high','substantial')"
+    outcome: REQUIRE_CUSTOMER
+    reason_code: ID_VERIFICATION_FAILED
+    message_de: "Die Identität konnte nicht elektronisch bestätigt werden. Bitte erneut ausweisen."
 
-- id: R-ID-05
-  step: identify
-  law: "BGB §§ 164 ff. (Zurechnung); Mandatsmodell — Bindung des Mandats an die identifizierte Person"
-  description: "The PID key binding (cnf) must equal the mandate signer (iss); otherwise the agent is presenting a third party's identity under this mandate."
-  when: "ctx.pid_cnf_kid != ctx.mandate.iss_kid"
-  outcome: REJECT
-  reason_code: HOLDER_MANDATE_MISMATCH
-  message_de: "Die identifizierte Person stimmt nicht mit dem Aussteller des Mandats überein."
+  - id: R-ID-02
+    step: identify
+    law: "AMLR Art. 22 Abs. 6; RTS Art. 7 (Ausnahme nur wenn eIDAS-Mittel nicht verfügbar)"
+    description: "Non-EU/EEA nationality without eIDAS credential -> fallback identification by staff."
+    when: "not any(n in ctx.eu_eea for n in ctx.kyc.nationalities) and ctx.presentation.issuer_trust != 'eidas'"
+    outcome: REQUIRE_REVIEW
+    reason_code: ID_NON_EU_DOCUMENT
+    message_de: "Für Ausweisdokumente außerhalb EU/EWR ist eine persönliche Prüfung erforderlich."
 
-- id: R-AML-01
-  step: identify
-  law: "EU-Sanktionsverordnungen; GwG §10 Abs. 1 Nr. 5"
-  description: "Sanctions screening hit blocks."
-  when: "ctx.screening.sanctions == 'hit'"
-  outcome: REJECT
-  reason_code: AML_SANCTIONS_HIT
-  message_de: "Die Depoteröffnung kann nicht fortgesetzt werden."
+  - id: R-ID-03
+    step: identify
+    law: "BGB §§ 106 ff. (beschränkte Geschäftsfähigkeit)"
+    description: "Minors cannot open a Depot via agent."
+    when: "ctx.kyc.age < 18"
+    outcome: REQUIRE_REVIEW
+    reason_code: ID_UNDERAGE
+    message_de: "Minderjährige können ein Depot nur mit gesetzlichen Vertretern eröffnen."
 
-- id: R-AML-02
-  step: identify
-  law: "GwG §15 Abs. 3 Nr. 1 (verstärkte Sorgfaltspflichten bei PEP)"
-  description: "PEP hit requires enhanced due diligence by a human."
-  when: "ctx.screening.pep == 'hit'"
-  outcome: HUMAN_REQUIRED
-  reason_code: AML_PEP_HIT
-  message_de: "Es sind zusätzliche Prüfungen durch einen Mitarbeiter erforderlich."
+  - id: R-ID-04
+    step: identify
+    law: "GwG §10 Abs. 1 Nr. 1 i.V.m. Referenzkontoprinzip"
+    description: "Reference account holder must match identified person (only evaluated when reference_account_iban supplied)."
+    when: "ctx.reference_account and not ctx.reference_account.name_match"
+    outcome: REQUIRE_REVIEW
+    reason_code: NAME_MISMATCH_REFERENCE_ACCOUNT
+    message_de: "Der Kontoinhaber des Referenzkontos stimmt nicht mit der identifizierten Person überein."
 
-- id: R-AML-03
-  step: identify
-  law: "GwG §15 Abs. 3 Nr. 2 (Drittstaaten mit hohem Risiko)"
-  description: "Residence or nationality in a high-risk third country."
-  when: "any(c in ctx.high_risk_countries for c in ctx.kyc.nationalities + [ctx.kyc.address.country])"
-  outcome: HUMAN_REQUIRED
-  reason_code: AML_HIGH_RISK_COUNTRY
-  message_de: "Aufgrund des Länderrisikos ist eine manuelle Prüfung erforderlich."
+  - id: R-ID-05
+    step: identify
+    law: "BGB §§ 164 ff. (Zurechnung); Mandatsmodell — Bindung des Mandats an die identifizierte Person"
+    description: "The PID key binding (cnf) must be the same key material as the mandate signer (iss); compared as did:key, not as a kid label. Otherwise the agent is presenting a third party's identity under this mandate."
+    when: "ctx.pid_cnf_did != ctx.mandate.iss"
+    outcome: DENY
+    reason_code: HOLDER_MANDATE_MISMATCH
+    message_de: "Die identifizierte Person stimmt nicht mit dem Aussteller des Mandats überein."
 
-- id: R-TAX-01
-  step: tax_declaration
-  law: "AO §139b; EStG §44a"
-  description: "German tax ID must be present."
-  when: "not ctx.declaration.tax_id"
-  outcome: HUMAN_REQUIRED
-  reason_code: TAX_ID_MISSING
-  message_de: "Ohne Steuer-Identifikationsnummer kann das Depot nicht eröffnet werden."
+  - id: R-AML-01
+    step: identify
+    confidential: true
+    law: "EU-Sanktionsverordnungen; GwG §10 Abs. 1 Nr. 5, §47 (Vertraulichkeit)"
+    description: "A sanctions-list correspondence is a possible match to be resolved by compliance — never an automatic rejection. REJECTED only after a documented compliance decision (REVIEW_REJECTED)."
+    when: "ctx.screening.sanctions == 'hit'"
+    outcome: REQUIRE_REVIEW
+    reason_code: AML_SANCTIONS_HIT
+    message_de: "Ihr Antrag wird geprüft."
 
-- id: R-TAX-02
-  step: tax_declaration
-  law: "FKAustG §3a Abs. 2 (CRS-Selbstauskunft)"
-  description: "Any tax residency outside Germany requires manual CRS handling in the MVP."
-  when: "any(r.country != 'DE' for r in ctx.declaration.residencies)"
-  outcome: HUMAN_REQUIRED
-  reason_code: TAX_FOREIGN_RESIDENCY
-  message_de: "Bei steuerlicher Ansässigkeit im Ausland prüft ein Mitarbeiter die Selbstauskunft."
+  - id: R-AML-02
+    step: identify
+    confidential: true
+    law: "GwG §15 Abs. 3 Nr. 1 (verstärkte Sorgfaltspflichten bei PEP); §47"
+    description: "PEP correspondence requires enhanced due diligence by compliance; never an automatic exclusion."
+    when: "ctx.screening.pep == 'hit'"
+    outcome: REQUIRE_REVIEW
+    reason_code: AML_PEP_HIT
+    message_de: "Ihr Antrag wird geprüft."
 
-- id: R-TAX-03
-  step: tax_declaration
-  law: "FATCA-Abkommen DE/USA; FATCA-USA-UmsV"
-  description: "US indicia require W-9/W-8BEN handling."
-  when: "ctx.declaration.us_person or 'US' in ctx.kyc.nationalities or ctx.kyc.birth_place_country == 'US'"
-  outcome: HUMAN_REQUIRED
-  reason_code: TAX_US_INDICIA
-  message_de: "Bei US-Bezug sind zusätzliche Formulare (W-9/W-8BEN) erforderlich."
+  - id: R-AML-03
+    step: identify
+    confidential: true
+    law: "GwG §15 Abs. 3 Nr. 2 (Drittstaaten mit hohem Risiko); §47"
+    description: "Residence or nationality in a high-risk third country -> compliance review."
+    when: "any(c in ctx.high_risk_countries for c in ctx.kyc.nationalities + [ctx.kyc.address.country])"
+    outcome: REQUIRE_REVIEW
+    reason_code: AML_HIGH_RISK_COUNTRY
+    message_de: "Ihr Antrag wird geprüft."
 
-- id: R-TAX-04
-  step: tax_declaration
-  law: "FKAustG §3a Abs. 2 (Erklärung des Kontoinhabers); BGB Zurechnung"
-  description: "The self-certification must be signed by the customer's holder key, not by the agent."
-  when: "not ctx.holder_signature_valid"
-  outcome: HUMAN_REQUIRED
-  reason_code: TAX_DECLARATION_UNSIGNED
-  message_de: "Die steuerliche Selbstauskunft muss vom Kunden selbst bestätigt werden."
+  - id: R-TAX-01
+    step: tax_declaration
+    law: "AO §139b; EStG §44a"
+    description: "German tax ID must be present."
+    when: "not ctx.declaration.tax_id"
+    outcome: REQUIRE_CUSTOMER
+    reason_code: TAX_ID_MISSING
+    message_de: "Ohne Steuer-Identifikationsnummer kann das Depot nicht eröffnet werden."
 
-- id: R-WPHG-01
-  step: appropriateness
-  law: "WpHG §63 Abs. 10 (Angemessenheitsprüfung); MaComp BT 6"
-  description: "Requested product classes must be within unlocked classes; otherwise warn and require human."
-  when: "any(c not in ctx.unlocked_classes for c in ctx.profile.requested_classes)"
-  outcome: HUMAN_REQUIRED
-  reason_code: PRODUCT_OUTSIDE_UNLOCKED
-  message_de: "Für die gewünschten Produktklassen liegen keine ausreichenden Kenntnisse und Erfahrungen vor (Warnhinweis nach §63 Abs. 10 WpHG)."
+  - id: R-TAX-02
+    step: tax_declaration
+    law: "FKAustG §3a Abs. 2 (CRS-Selbstauskunft)"
+    description: "Any tax residency outside Germany requires manual CRS handling in the MVP."
+    when: "any(r.country != 'DE' for r in ctx.declaration.residencies)"
+    outcome: REQUIRE_REVIEW
+    reason_code: TAX_FOREIGN_RESIDENCY
+    message_de: "Bei steuerlicher Ansässigkeit im Ausland prüft ein Mitarbeiter die Selbstauskunft."
 
-- id: R-WPHG-02
-  step: appropriateness
-  law: "WpHG §64 Abs. 3 (Geeignetheitsprüfung bei Anlageberatung)"
-  description: "Advice is not offered in the agent channel; route to partner-bank adviser."
-  when: "ctx.mandate.scope.advice_allowed or ctx.profile.advice_requested"
-  outcome: HUMAN_REQUIRED
-  reason_code: ADVICE_REQUESTED
-  message_de: "Eine Anlageberatung erfolgt durch Ihre Partnerbank. Wir vermitteln einen Termin."
+  - id: R-TAX-03
+    step: tax_declaration
+    law: "FATCA-Abkommen DE/USA; FATCA-USA-UmsV"
+    description: "US indicia require W-9/W-8BEN handling."
+    when: "ctx.declaration.us_person or 'US' in ctx.kyc.nationalities or ctx.kyc.birth_place_country == 'US'"
+    outcome: REQUIRE_REVIEW
+    reason_code: TAX_US_INDICIA
+    message_de: "Bei US-Bezug sind zusätzliche Formulare (W-9/W-8BEN) erforderlich."
 
-- id: R-WPHG-03
-  step: appropriateness
-  law: "WpHG §63 Abs. 11 (Execution-only nur für nicht-komplexe Instrumente)"
-  description: "Complex products are never opened autonomously."
-  when: "any(c in ('derivate','zertifikate') for c in ctx.profile.requested_classes)"
-  outcome: HUMAN_REQUIRED
-  reason_code: COMPLEX_PRODUCT
-  message_de: "Komplexe Finanzinstrumente sind im Agentenkanal nicht autonom freischaltbar."
+  - id: R-TAX-04
+    step: tax_declaration
+    law: "FKAustG §3a Abs. 2 (Erklärung des Kontoinhabers); BGB Zurechnung"
+    description: "The self-certification must be signed by the customer's holder key, not by the agent."
+    when: "not ctx.holder_signature_valid"
+    outcome: REQUIRE_CUSTOMER
+    reason_code: TAX_DECLARATION_UNSIGNED
+    message_de: "Die steuerliche Selbstauskunft muss vom Kunden selbst bestätigt werden."
 
-- id: R-CTR-01
-  step: sign_contract
-  law: "BGB §§ 312c ff. (Fernabsatz), eIDAS Art. 25 (QES); Zurechnung der Willenserklärung"
-  description: "Contract hash must be signed by the holder key (mock QES)."
-  when: "not ctx.holder_signature_valid or ctx.signed_contract_hash != ctx.contract_hash"
-  outcome: HUMAN_REQUIRED
-  reason_code: CONTRACT_UNSIGNED
-  message_de: "Der Depotvertrag muss vom Kunden persönlich signiert werden."
+  - id: R-SVC-01
+    step: appropriateness
+    informational: true
+    law: "WpHG §63 Abs. 10/11 — die Pflicht knüpft an die Dienstleistung, nicht an das leere Depot"
+    description: "Classify service_mode: account_only when requested_classes empty (appropriateness NOT_REQUIRED, reason recorded); non_advised when requested_classes non-empty; advised routes to review via R-WPHG-02."
+    when: "true"
+    outcome: ALLOW
+    sets: service_mode
+
+  - id: R-WPHG-01
+    step: appropriateness
+    law: "WpHG §63 Abs. 10 (Angemessenheitsprüfung); MaComp BT 6"
+    description: "Requested product classes must be within unlocked classes; otherwise the customer acknowledges the §63(10) warning or drops the class."
+    when: "any(c not in ctx.unlocked_classes for c in ctx.profile.requested_classes)"
+    outcome: REQUIRE_CUSTOMER
+    reason_code: PRODUCT_OUTSIDE_UNLOCKED
+    message_de: "Für die gewünschten Produktklassen liegen keine ausreichenden Kenntnisse und Erfahrungen vor (Warnhinweis nach §63 Abs. 10 WpHG)."
+
+  - id: R-WPHG-02
+    step: appropriateness
+    law: "WpHG §64 Abs. 3 (Geeignetheitsprüfung bei Anlageberatung)"
+    description: "Advice is not offered in the agent channel; route to partner-bank adviser."
+    when: "ctx.mandate.scope.advice_allowed or ctx.profile.advice_requested"
+    outcome: REQUIRE_REVIEW
+    reason_code: ADVICE_REQUESTED
+    message_de: "Eine Anlageberatung erfolgt durch Ihre Partnerbank. Wir vermitteln einen Termin."
+
+  - id: R-WPHG-03
+    step: appropriateness
+    law: "WpHG §63 Abs. 11 (Execution-only nur für nicht-komplexe Instrumente)"
+    description: "Complex products are never opened autonomously."
+    when: "any(c in ('derivate','zertifikate') for c in ctx.profile.requested_classes)"
+    outcome: REQUIRE_REVIEW
+    reason_code: COMPLEX_PRODUCT
+    message_de: "Komplexe Finanzinstrumente sind im Agentenkanal nicht autonom freischaltbar."
+
+  - id: R-CTR-01
+    step: sign_contract
+    law: "BGB §§ 312c ff. (Fernabsatz), eIDAS Art. 25 (QES); Zurechnung der Willenserklärung"
+    description: "Snapshot digest must be signed by the holder key (mock QES)."
+    when: "not ctx.holder_signature_valid"
+    outcome: REQUIRE_CUSTOMER
+    reason_code: CONTRACT_UNSIGNED
+    message_de: "Der Depotvertrag muss vom Kunden persönlich signiert werden."
+
+  - id: R-CTR-02
+    step: sign_contract
+    law: "BGB Vertragsschluss — Antrag und Annahme müssen inhaltlich übereinstimmen; Fernabsatz-Informationspflichten"
+    description: "The signed snapshot_digest must match the current snapshot; a changed fee/product/pricing invalidates the confirmation and a fresh bundle is issued."
+    when: "ctx.signed_snapshot_digest != ctx.current_snapshot_digest"
+    outcome: REQUIRE_CUSTOMER
+    reason_code: SNAPSHOT_STALE
+    message_de: "Die Vertragsunterlagen haben sich geändert. Bitte bestätigen Sie die aktualisierte Zusammenfassung erneut."

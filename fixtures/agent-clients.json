@@ -1,0 +1,24 @@
+{
+  "_comment": "Gateway-side registry of agent operator clients (P1-00 §2.2). instance_jwk is the public key of the agent instance key; its private key is in fixtures/keys/agent-kundenagent-demo.private.pem (gitignored). The gateway verifies x-sender-proof against instance_jwk and requires mandate.agent.id == client_id.",
+  "clients": [
+    {
+      "client_id": "agent:kundenagent-demo",
+      "operator_name": "Anthropic Claude (Demo Kundenagent)",
+      "instance_jwk": {
+        "kty": "OKP",
+        "crv": "Ed25519",
+        "x": "ywLSVF7O0wDVatxQ72_HvCuTmldQI3Diy0gBnGwRFNA",
+        "use": "sig",
+        "alg": "EdDSA",
+        "kid": "agent-kundenagent-demo"
+      },
+      "status": "active"
+    },
+    {
+      "client_id": "agent:blocked-demo",
+      "operator_name": "Gesperrter Test-Client",
+      "instance_jwk": null,
+      "status": "blocked"
+    }
+  ]
+}

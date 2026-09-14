@@ -31,6 +31,12 @@ FIXTURES_DIR = REPO_ROOT / "fixtures"
 ISSUER_KID = "mock-bundesdruckerei"
 PROVIDER_KID = "fonds-ag-2026"
 HOLDER_KID_PREFIX = "holder-"
+# Service keys added in P1-00: partner bank (referral receipts) and the agent
+# instance key (x-sender-proof). Mapping kid -> role.
+SERVICE_KEYS: dict[str, str] = {
+    "volksbank-leipzig": "partner",
+    "agent-kundenagent-demo": "agent_client",
+}
 
 # Bitcoin/base58btc alphabet, used by did:key multibase 'z'.
 _B58_ALPHABET = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz"
@@ -113,10 +119,10 @@ class ManagedKey:
 
     def to_jwk(self) -> dict[str, str]:
         extra: dict[str, str] = {"role": self.role}
-        if self.role == "holder":
+        if self.role in ("holder", "agent_client"):
             extra["did"] = self.did
-            if self.persona is not None:
-                extra["persona"] = self.persona
+        if self.role == "holder" and self.persona is not None:
+            extra["persona"] = self.persona
         return public_jwk(self.public, self.kid, **extra)
 
 
@@ -125,9 +131,10 @@ class KeyRegistry:
     issuer: ManagedKey
     provider: ManagedKey
     holders: dict[str, ManagedKey] = field(default_factory=dict)
+    services: dict[str, ManagedKey] = field(default_factory=dict)
 
     def all_keys(self) -> list[ManagedKey]:
-        return [self.issuer, self.provider, *self.holders.values()]
+        return [self.issuer, self.provider, *self.holders.values(), *self.services.values()]
 
     def jwks(self) -> dict[str, list[dict[str, str]]]:
         return {"keys": [k.to_jwk() for k in self.all_keys()]}
@@ -190,6 +197,10 @@ def ensure_keys(
                 persona=pid,
             )
             for pid in persona_ids
+        },
+        services={
+            kid: ManagedKey(kid, role, _load_or_create(kid, keys_dir))
+            for kid, role in SERVICE_KEYS.items()
         },
     )
 

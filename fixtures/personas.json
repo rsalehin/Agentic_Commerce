@@ -7,7 +7,7 @@
     "partner_bank_de": "Volksbank Leipzig eG (Demo)",
     "adviser_de": "Frau Weber, Anlageberaterin",
     "products": [
-      { "isin": "DE000MOCK0001", "name_de": "Fonds AG Welt Aktien ETF", "class": "etf", "ter_pct": 0.20, "ausgabeaufschlag_pct": 0.0, "complex": false, "target_market": { "knowledge": "basic", "loss_tolerance": "medium" } },
+      { "isin": "DE000MOCK0001", "name_de": "Fonds AG Welt Aktien ETF", "class": "etf", "ter_pct": 0.20, "ausgabeaufschlag_pct": 0.0, "complex": false, "product_version": "pv-1", "default_pricing_version": "p-1", "pricing_versions": { "p-1": { "depot_fee_eur_year": 9.0 }, "p-2": { "depot_fee_eur_year": 12.0 } }, "target_market": { "knowledge": "basic", "loss_tolerance": "medium" } },
       { "isin": "DE000MOCK0002", "name_de": "Fonds AG Nachhaltig Mischfonds", "class": "fonds", "ter_pct": 1.10, "ausgabeaufschlag_pct": 2.5, "complex": false, "target_market": { "knowledge": "basic", "loss_tolerance": "medium" } },
       { "isin": "DE000MOCK0003", "name_de": "Fonds AG DAX Bonus-Zertifikat", "class": "zertifikate", "ter_pct": 0.0, "ausgabeaufschlag_pct": 1.0, "complex": true, "target_market": { "knowledge": "advanced", "loss_tolerance": "high" } }
     ],
@@ -17,6 +17,9 @@
     {
       "id": "lena",
       "scenario": "happy_path",
+      "origin_channel": "agent",
+      "servicing_partner_id": "volksbank-leipzig",
+      "referral_receipt": "ref:volksbank-leipzig/lena",
       "pid": {
         "given_name": "Lena",
         "family_name": "Schmidt",
@@ -40,6 +43,9 @@
     {
       "id": "marco",
       "scenario": "escalation",
+      "origin_channel": "agent",
+      "servicing_partner_id": "volksbank-leipzig",
+      "referral_receipt": "ref:volksbank-leipzig/marco",
       "pid": {
         "given_name": "Marco",
         "family_name": "Rossi",
@@ -59,7 +65,8 @@
       "mandate_scope": { "product_classes": ["fonds", "etf", "zertifikate"], "monthly_amount_max": 300, "one_off_amount_max": 0, "advice_allowed": false },
       "plan": { "monthly_amount": 300, "product_isin": "DE000MOCK0003" },
       "expected_reason_codes": ["TAX_FOREIGN_RESIDENCY", "PRODUCT_OUTSIDE_UNLOCKED", "COMPLEX_PRODUCT"],
-      "expected_final_state": "ADVISED_HANDOFF"
+      "expected_final_state": "ADVISED_HANDOFF",
+      "expected_path": "REVIEW_REQUIRED (tax: TAX_FOREIGN_RESIDENCY) -> adviser approve -> TAX_CONFIRMED -> REVIEW_REQUIRED (appropriateness: COMPLEX_PRODUCT, PRODUCT_OUTSIDE_UNLOCKED) -> adviser request_appointment -> ADVISED_HANDOFF"
     },
     {
       "id": "sanction_test",
@@ -83,7 +90,8 @@
       "mandate_scope": { "product_classes": ["fonds"], "monthly_amount_max": 50, "one_off_amount_max": 0, "advice_allowed": false },
       "plan": { "monthly_amount": 50, "product_isin": "DE000MOCK0002" },
       "expected_reason_codes": ["AML_SANCTIONS_HIT"],
-      "expected_final_state": "REJECTED"
+      "expected_final_state": "REJECTED",
+      "expected_path": "REVIEW_REQUIRED (compliance; agent sees IN_REVIEW) -> compliance decision reject (REVIEW_REJECTED) -> REJECTED"
     }
   ],
   "stubs": {
