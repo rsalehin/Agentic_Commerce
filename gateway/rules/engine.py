@@ -56,11 +56,14 @@ class RuleResult:
 class PolicyDecision:
     outcome: str
     reason_codes: list[str]  # real codes (for the audit log)
-    rules: list[RuleResult]
+    rules: list[RuleResult]  # the rules that FIRED (non-ALLOW)
     policy_version: str
     confidential: bool = False
     message_de: str | None = None
     sets: dict[str, bool] = field(default_factory=dict)
+    # Every applicable rule with its actual outcome (ALLOW if it passed) — the
+    # per-step audit/Nachweis record (P2-05).
+    evaluated: list[RuleResult] = field(default_factory=list)
 
     def agent_reason_codes(self) -> list[str]:
         """Codes shown to the agent/customer: masked for confidential reviews."""
@@ -107,12 +110,27 @@ class RulesEngine:
             informational=bool(rule.get("informational", False)),
         )
 
+    def _evaluated(self, rule: dict[str, Any], fired: bool) -> RuleResult:
+        """A rule's record with its actual outcome (ALLOW when it passed)."""
+        return RuleResult(
+            id=rule["id"],
+            outcome=rule["outcome"] if fired else "ALLOW",
+            law=rule["law"],
+            reason_code=rule.get("reason_code") if fired else None,
+            message_de=rule.get("message_de") if fired else None,
+            confidential=bool(rule.get("confidential", False)),
+            informational=bool(rule.get("informational", False)),
+        )
+
     def evaluate(self, step: str, ctx: dict[str, Any]) -> PolicyDecision:
         ns = _namespace(ctx)
         applicable = [r for r in self.rules if self._applies(r, step)]
+        fired_map = {r["id"]: self._fires(r, ns) for r in applicable}
+        # Every applicable check with its result (for the audit/Nachweis).
+        evaluated = [self._evaluated(r, fired_map[r["id"]]) for r in applicable]
 
         # 1. Guards first — any firing guard short-circuits to ERROR.
-        guard_hits = [self._result(r) for r in applicable if r.get("guard") and self._fires(r, ns)]
+        guard_hits = [self._result(r) for r in applicable if r.get("guard") and fired_map[r["id"]]]
         if guard_hits:
             return PolicyDecision(
                 outcome="ERROR",
@@ -120,10 +138,11 @@ class RulesEngine:
                 rules=guard_hits,
                 policy_version=self.version,
                 message_de=guard_hits[0].message_de,
+                evaluated=evaluated,
             )
 
         # 2. Non-guard rules.
-        fired = [self._result(r) for r in applicable if not r.get("guard") and self._fires(r, ns)]
+        fired = [self._result(r) for r in applicable if not r.get("guard") and fired_map[r["id"]]]
         sets = {r.id: True for r in fired if r.informational}
         gating = [r for r in fired if not r.informational and r.outcome != "ALLOW"]
 
@@ -134,6 +153,7 @@ class RulesEngine:
                 rules=fired,
                 policy_version=self.version,
                 sets=sets,
+                evaluated=evaluated,
             )
 
         winner_outcome = min(gating, key=lambda r: _PRECEDENCE.index(r.outcome)).outcome
@@ -146,4 +166,5 @@ class RulesEngine:
             confidential=any(r.confidential for r in gating),
             message_de=winner.message_de,
             sets=sets,
+            evaluated=evaluated,
         )

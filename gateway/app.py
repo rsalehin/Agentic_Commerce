@@ -116,6 +116,16 @@ def create_app(service: GatewayService | None = None) -> FastAPI:
             return JSONResponse({"error": {"code": "NOT_FOUND"}}, status_code=404)
         return JSONResponse(snapshot)
 
+    @app.get("/sessions/{sid}/evidence")
+    def get_evidence(sid: str) -> JSONResponse:
+        evidence = service.session_evidence(sid)
+        if evidence is None:
+            return JSONResponse({"error": {"code": "NOT_FOUND"}}, status_code=404)
+        return JSONResponse(
+            evidence,
+            headers={"Content-Disposition": f'attachment; filename="nachweis-{sid}.json"'},
+        )
+
     @app.get("/events")
     async def events(request: Request, after: int = 0, once: bool = False) -> StreamingResponse:
         async def stream() -> AsyncIterator[str]:

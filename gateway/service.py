@@ -174,6 +174,47 @@ class GatewayService:
                 self.event_log.append(self._event_dict(sid, event))
             self._published[sid] = len(events)
 
+    def session_evidence(self, session_id: str) -> dict[str, Any] | None:
+        """Nachweis: map each rule to the evidence that satisfied it (P2-05)."""
+        entry = self.sessions.get(session_id)
+        if entry is None:
+            return None
+        sess = entry.session
+        steps: list[dict[str, Any]] = []
+        rule_index: dict[str, dict[str, Any]] = {}
+        for event in sess.events:
+            if not event.rules:
+                continue
+            steps.append(
+                {
+                    "seq": event.seq,
+                    "ts": event.ts,
+                    "tool": event.tool,
+                    "from_state": event.from_state,
+                    "to_state": event.to_state,
+                    "reason_codes": event.reason_codes,
+                    "evidence_hash": event.evidence_hash,
+                    "rules": event.rules,
+                }
+            )
+            for rule in event.rules:
+                # Last evaluation of a rule wins (e.g. a re-run after review).
+                rule_index[rule["id"]] = {
+                    "outcome": rule["outcome"],
+                    "law": rule["law"],
+                    "evidence_hash": event.evidence_hash,
+                    "seq": event.seq,
+                }
+        return {
+            "session_id": session_id,
+            "state": sess.state,
+            "mandate_id": sess.mandate_id,
+            "policy_version": self.engine.version,
+            "audit_chain_ok": sess.audit_chain_ok(),
+            "rule_index": rule_index,
+            "steps": steps,
+        }
+
     def session_snapshot(self, session_id: str) -> dict[str, Any] | None:
         entry = self.sessions.get(session_id)
         if entry is None:
@@ -259,7 +300,8 @@ class GatewayService:
         return ctx
 
     def _rules_json(self, decision: PolicyDecision) -> list[dict[str, str]]:
-        return [{"id": r.id, "outcome": r.outcome, "law": r.law} for r in decision.rules]
+        # Record every applicable check (ALLOW when passed) for the Nachweis (P2-05).
+        return [{"id": r.id, "outcome": r.outcome, "law": r.law} for r in decision.evaluated]
 
     def _apply_non_allow(
         self, entry: SessionEntry, tool: str, decision: PolicyDecision
