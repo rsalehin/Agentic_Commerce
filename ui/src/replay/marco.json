@@ -1,0 +1,507 @@
+{
+  "persona": "marco",
+  "card": {
+    "name": "Fonds AG Depoteröffnung",
+    "description": "Agentenfähige Depoteröffnung der Fonds AG (Demo). Beratungsfreies Geschäft; Human-only-Schritte: steuerliche Selbstauskunft, Vertragssignatur.",
+    "version": "1.0.0",
+    "provider": {
+      "organization": "Fonds AG (Demo)",
+      "url": "https://fonds-ag.example",
+      "lei": "5299000MOCK000000001",
+      "bafin_id": "MOCK-123456",
+      "custodian": "Fonds AG Depotbank (Mock)"
+    },
+    "supportedInterfaces": [
+      {
+        "protocol": "mcp",
+        "url": "http://localhost:8080/mcp",
+        "version": "2025-06-18"
+      }
+    ],
+    "capabilities": {
+      "onboarding": "v1",
+      "documents": "v1",
+      "escalation": "v1"
+    },
+    "securitySchemes": {
+      "mandate": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWS-Mandate/v1"
+      }
+    },
+    "skills": [
+      {
+        "id": "onboarding.v1",
+        "name": "Depoteröffnung",
+        "description": "Eröffnung eines Wertpapierdepots mit Sparplan (Fonds/ETF) auf Basis eines signierten Kundenmandats.",
+        "inputModes": [
+          "application/json"
+        ],
+        "outputModes": [
+          "application/json"
+        ]
+      }
+    ],
+    "termsManifest": "http://localhost:8080/terms-manifest.json",
+    "aiDisclosure_de": "Sie interagieren mit einem automatisierten System der Fonds AG (Art. 50 KI-VO).",
+    "signatures": [
+      {
+        "protected": "eyJhbGciOiJFZERTQSIsImprdSI6Imh0dHA6Ly9sb2NhbGhvc3Q6ODA4MC8ud2VsbC1rbm93bi9qd2tzLmpzb24iLCJraWQiOiJmb25kcy1hZy0yMDI2In0",
+        "signature": "U9rdWWJDKFmofdR6wTmX-FFFlv9NGSXXeALPHVS62Ct_vRCTw12anu3aX_RmPK2ky132jZxpdCL5FzFH-ZVoAw"
+      }
+    ]
+  },
+  "events": [
+    {
+      "session_id": "ses_000002",
+      "seq": 0,
+      "ts": "2026-09-15T02:21:51.055056+00:00",
+      "actor": "gateway",
+      "from_state": "INIT",
+      "to_state": "DISCOVERED",
+      "tool": null,
+      "reason_codes": [],
+      "evidence_hash": null,
+      "hash": "sha256:48ed22d4c562d1ceb865ffe11bc34bee70941de55fb7e32e93be8f82f02b938f"
+    },
+    {
+      "session_id": "ses_000002",
+      "seq": 1,
+      "ts": "2026-09-15T02:21:51.055056+00:00",
+      "actor": "gateway",
+      "from_state": "DISCOVERED",
+      "to_state": "MANDATE_VALID",
+      "tool": "onboarding.start",
+      "reason_codes": [],
+      "evidence_hash": null,
+      "hash": "sha256:f71b9ba142d6d93b70554e76a602a23dddf450dd0e1e914ab2683a599a1de78e"
+    },
+    {
+      "session_id": "ses_000002",
+      "seq": 2,
+      "ts": "2026-09-15T02:21:51.058072+00:00",
+      "actor": "gateway",
+      "from_state": "MANDATE_VALID",
+      "to_state": "IDENTIFIED",
+      "tool": "onboarding.identify",
+      "reason_codes": [],
+      "evidence_hash": "sha256:7637883ba44c90c2b9bb07085362fab6032295a86d1cb6d973937ac5f212c8ea",
+      "hash": "sha256:33c10666f95a9baf06274f6ada787f6f8ff90b81ca764aea9a6854c61ca56370"
+    },
+    {
+      "session_id": "ses_000002",
+      "seq": 3,
+      "ts": "2026-09-15T02:21:51.058072+00:00",
+      "actor": "gateway",
+      "from_state": "IDENTIFIED",
+      "to_state": "SCREENED",
+      "tool": null,
+      "reason_codes": [],
+      "evidence_hash": null,
+      "hash": "sha256:5a7bf69997784e100548512c4ce9b535565d9a748ce435cb441d9fc14bc05b31"
+    },
+    {
+      "session_id": "ses_000002",
+      "seq": 4,
+      "ts": "2026-09-15T02:21:51.058072+00:00",
+      "actor": "gateway",
+      "from_state": "SCREENED",
+      "to_state": "REVIEW_REQUIRED",
+      "tool": "onboarding.tax_declaration",
+      "reason_codes": [
+        "TAX_FOREIGN_RESIDENCY"
+      ],
+      "evidence_hash": null,
+      "hash": "sha256:08822e82fa374bb54343131ed02e17216ee4265fbe923060e25eafdc3ff00cff"
+    },
+    {
+      "session_id": "ses_000002",
+      "seq": 5,
+      "ts": "2026-09-15T02:21:51.058072+00:00",
+      "actor": "adviser",
+      "from_state": "REVIEW_REQUIRED",
+      "to_state": "TAX_CONFIRMED",
+      "tool": null,
+      "reason_codes": [],
+      "evidence_hash": null,
+      "hash": "sha256:3dd4b6b635c34bcbdb0186ef361862e7d5cd0224f0e20930353021e4a87cdba6"
+    },
+    {
+      "session_id": "ses_000002",
+      "seq": 6,
+      "ts": "2026-09-15T02:21:51.059076+00:00",
+      "actor": "gateway",
+      "from_state": "TAX_CONFIRMED",
+      "to_state": "REVIEW_REQUIRED",
+      "tool": "onboarding.appropriateness",
+      "reason_codes": [
+        "PRODUCT_OUTSIDE_UNLOCKED",
+        "COMPLEX_PRODUCT"
+      ],
+      "evidence_hash": null,
+      "hash": "sha256:b40241a4baa55f08b4001269e298f997267479c094d6b226931652298f195cc2"
+    },
+    {
+      "session_id": "ses_000002",
+      "seq": 7,
+      "ts": "2026-09-15T02:21:51.059076+00:00",
+      "actor": "adviser",
+      "from_state": "REVIEW_REQUIRED",
+      "to_state": "ADVISED_HANDOFF",
+      "tool": null,
+      "reason_codes": [],
+      "evidence_hash": null,
+      "hash": "sha256:7f1f4b8ed661effb15872b9fc1eae28b38bcd133aad7b74af19828e5a3db7c27"
+    }
+  ],
+  "snapshot": {
+    "session_id": "ses_000002",
+    "state": "ADVISED_HANDOFF",
+    "blocked_from": "TAX_CONFIRMED",
+    "reason_codes": [
+      "PRODUCT_OUTSIDE_UNLOCKED",
+      "COMPLEX_PRODUCT"
+    ],
+    "service_mode": "non_advised",
+    "audit_chain_ok": true,
+    "events": [
+      {
+        "session_id": "ses_000002",
+        "seq": 0,
+        "ts": "2026-09-15T02:21:51.055056+00:00",
+        "actor": "gateway",
+        "from_state": "INIT",
+        "to_state": "DISCOVERED",
+        "tool": null,
+        "reason_codes": [],
+        "evidence_hash": null,
+        "hash": "sha256:48ed22d4c562d1ceb865ffe11bc34bee70941de55fb7e32e93be8f82f02b938f"
+      },
+      {
+        "session_id": "ses_000002",
+        "seq": 1,
+        "ts": "2026-09-15T02:21:51.055056+00:00",
+        "actor": "gateway",
+        "from_state": "DISCOVERED",
+        "to_state": "MANDATE_VALID",
+        "tool": "onboarding.start",
+        "reason_codes": [],
+        "evidence_hash": null,
+        "hash": "sha256:f71b9ba142d6d93b70554e76a602a23dddf450dd0e1e914ab2683a599a1de78e"
+      },
+      {
+        "session_id": "ses_000002",
+        "seq": 2,
+        "ts": "2026-09-15T02:21:51.058072+00:00",
+        "actor": "gateway",
+        "from_state": "MANDATE_VALID",
+        "to_state": "IDENTIFIED",
+        "tool": "onboarding.identify",
+        "reason_codes": [],
+        "evidence_hash": "sha256:7637883ba44c90c2b9bb07085362fab6032295a86d1cb6d973937ac5f212c8ea",
+        "hash": "sha256:33c10666f95a9baf06274f6ada787f6f8ff90b81ca764aea9a6854c61ca56370"
+      },
+      {
+        "session_id": "ses_000002",
+        "seq": 3,
+        "ts": "2026-09-15T02:21:51.058072+00:00",
+        "actor": "gateway",
+        "from_state": "IDENTIFIED",
+        "to_state": "SCREENED",
+        "tool": null,
+        "reason_codes": [],
+        "evidence_hash": null,
+        "hash": "sha256:5a7bf69997784e100548512c4ce9b535565d9a748ce435cb441d9fc14bc05b31"
+      },
+      {
+        "session_id": "ses_000002",
+        "seq": 4,
+        "ts": "2026-09-15T02:21:51.058072+00:00",
+        "actor": "gateway",
+        "from_state": "SCREENED",
+        "to_state": "REVIEW_REQUIRED",
+        "tool": "onboarding.tax_declaration",
+        "reason_codes": [
+          "TAX_FOREIGN_RESIDENCY"
+        ],
+        "evidence_hash": null,
+        "hash": "sha256:08822e82fa374bb54343131ed02e17216ee4265fbe923060e25eafdc3ff00cff"
+      },
+      {
+        "session_id": "ses_000002",
+        "seq": 5,
+        "ts": "2026-09-15T02:21:51.058072+00:00",
+        "actor": "adviser",
+        "from_state": "REVIEW_REQUIRED",
+        "to_state": "TAX_CONFIRMED",
+        "tool": null,
+        "reason_codes": [],
+        "evidence_hash": null,
+        "hash": "sha256:3dd4b6b635c34bcbdb0186ef361862e7d5cd0224f0e20930353021e4a87cdba6"
+      },
+      {
+        "session_id": "ses_000002",
+        "seq": 6,
+        "ts": "2026-09-15T02:21:51.059076+00:00",
+        "actor": "gateway",
+        "from_state": "TAX_CONFIRMED",
+        "to_state": "REVIEW_REQUIRED",
+        "tool": "onboarding.appropriateness",
+        "reason_codes": [
+          "PRODUCT_OUTSIDE_UNLOCKED",
+          "COMPLEX_PRODUCT"
+        ],
+        "evidence_hash": null,
+        "hash": "sha256:b40241a4baa55f08b4001269e298f997267479c094d6b226931652298f195cc2"
+      },
+      {
+        "session_id": "ses_000002",
+        "seq": 7,
+        "ts": "2026-09-15T02:21:51.059076+00:00",
+        "actor": "adviser",
+        "from_state": "REVIEW_REQUIRED",
+        "to_state": "ADVISED_HANDOFF",
+        "tool": null,
+        "reason_codes": [],
+        "evidence_hash": null,
+        "hash": "sha256:7f1f4b8ed661effb15872b9fc1eae28b38bcd133aad7b74af19828e5a3db7c27"
+      }
+    ]
+  },
+  "escalations": [
+    {
+      "id": "esc_0001",
+      "session_id": "ses_000002",
+      "queue": "review",
+      "actor_role": "adviser",
+      "reasons": [
+        "TAX_FOREIGN_RESIDENCY"
+      ],
+      "blocked_from": "SCREENED",
+      "blocked_tool": "onboarding.tax_declaration",
+      "created_at": "2026-09-15T02:21:51.058072+00:00",
+      "confidential": false,
+      "status": "approved",
+      "note": null,
+      "decided_by": "adviser",
+      "evidence_hashes": [
+        "sha256:7637883ba44c90c2b9bb07085362fab6032295a86d1cb6d973937ac5f212c8ea"
+      ]
+    },
+    {
+      "id": "esc_0002",
+      "session_id": "ses_000002",
+      "queue": "review",
+      "actor_role": "adviser",
+      "reasons": [
+        "PRODUCT_OUTSIDE_UNLOCKED",
+        "COMPLEX_PRODUCT"
+      ],
+      "blocked_from": "TAX_CONFIRMED",
+      "blocked_tool": "onboarding.appropriateness",
+      "created_at": "2026-09-15T02:21:51.059076+00:00",
+      "confidential": false,
+      "status": "appointment",
+      "note": null,
+      "decided_by": "adviser",
+      "evidence_hashes": [
+        "sha256:7637883ba44c90c2b9bb07085362fab6032295a86d1cb6d973937ac5f212c8ea"
+      ]
+    }
+  ],
+  "rules": [
+    {
+      "id": "R-MND-01",
+      "step": "any",
+      "outcome": "ERROR",
+      "reason_code": "MANDATE_SCOPE_EXCEEDED",
+      "law": "BGB §§ 164 ff. (Zurechnung), Mandatsmodell; AP2-Mandate als Vorbild",
+      "message_de": "Die Anfrage überschreitet das vom Kunden erteilte Mandat."
+    },
+    {
+      "id": "R-MND-02",
+      "step": "any",
+      "outcome": "ERROR",
+      "reason_code": "MANDATE_EXPIRED",
+      "law": "GwG §10 Abs. 1 Nr. 5 (Aktualität), Mandatsmodell",
+      "message_de": "Das Mandat ist abgelaufen. Bitte neu erteilen."
+    },
+    {
+      "id": "R-MND-03",
+      "step": "any",
+      "outcome": "DENY",
+      "reason_code": "MANDATE_REVOKED",
+      "law": "Mandatsmodell (Widerruflichkeit); re-checked on every write",
+      "message_de": "Das Mandat wurde widerrufen."
+    },
+    {
+      "id": "R-MND-04",
+      "step": "start",
+      "outcome": "DENY",
+      "reason_code": "AGENT_UNVERIFIED",
+      "law": "AMLR Art. 20 Abs. 1 lit. i (im Namen des Kunden Handelnde); AI Act Art. 50 (Transparenz)",
+      "message_de": "Der Agent konnte nicht verifiziert werden."
+    },
+    {
+      "id": "R-MND-05",
+      "step": "any",
+      "outcome": "ERROR",
+      "reason_code": "CLIENT_UNREGISTERED",
+      "law": "DORA Art. 28 ff. (IKT-Drittparteien); Zulassung/Registrierung externer Clients",
+      "message_de": "Der aufrufende Client ist nicht registriert oder gesperrt."
+    },
+    {
+      "id": "R-MND-06",
+      "step": "any",
+      "outcome": "ERROR",
+      "reason_code": "SENDER_BINDING_INVALID",
+      "law": "DORA Art. 28 ff.; Sender-Bindung (DPoP-artiger Nachweis) der Willenserklärung an den Client",
+      "message_de": "Der Sender-Nachweis des Agenten ist ungültig."
+    },
+    {
+      "id": "R-ID-01",
+      "step": "identify",
+      "outcome": "REQUIRE_CUSTOMER",
+      "reason_code": "ID_VERIFICATION_FAILED",
+      "law": "GwG §12 Abs. 1, §13 Abs. 1; AMLR Art. 22 Abs. 6 lit. b (eIDAS-konforme Identifizierung)",
+      "message_de": "Die Identität konnte nicht elektronisch bestätigt werden. Bitte erneut ausweisen."
+    },
+    {
+      "id": "R-ID-02",
+      "step": "identify",
+      "outcome": "REQUIRE_REVIEW",
+      "reason_code": "ID_NON_EU_DOCUMENT",
+      "law": "AMLR Art. 22 Abs. 6; RTS Art. 7 (Ausnahme nur wenn eIDAS-Mittel nicht verfügbar)",
+      "message_de": "Für Ausweisdokumente außerhalb EU/EWR ist eine persönliche Prüfung erforderlich."
+    },
+    {
+      "id": "R-ID-03",
+      "step": "identify",
+      "outcome": "REQUIRE_REVIEW",
+      "reason_code": "ID_UNDERAGE",
+      "law": "BGB §§ 106 ff. (beschränkte Geschäftsfähigkeit)",
+      "message_de": "Minderjährige können ein Depot nur mit gesetzlichen Vertretern eröffnen."
+    },
+    {
+      "id": "R-ID-04",
+      "step": "identify",
+      "outcome": "REQUIRE_REVIEW",
+      "reason_code": "NAME_MISMATCH_REFERENCE_ACCOUNT",
+      "law": "GwG §10 Abs. 1 Nr. 1 i.V.m. Referenzkontoprinzip",
+      "message_de": "Der Kontoinhaber des Referenzkontos stimmt nicht mit der identifizierten Person überein."
+    },
+    {
+      "id": "R-ID-05",
+      "step": "identify",
+      "outcome": "DENY",
+      "reason_code": "HOLDER_MANDATE_MISMATCH",
+      "law": "BGB §§ 164 ff. (Zurechnung); Mandatsmodell — Bindung des Mandats an die identifizierte Person",
+      "message_de": "Die identifizierte Person stimmt nicht mit dem Aussteller des Mandats überein."
+    },
+    {
+      "id": "R-AML-01",
+      "step": "identify",
+      "outcome": "REQUIRE_REVIEW",
+      "reason_code": "AML_SANCTIONS_HIT",
+      "law": "EU-Sanktionsverordnungen; GwG §10 Abs. 1 Nr. 5, §47 (Vertraulichkeit)",
+      "message_de": "Ihr Antrag wird geprüft."
+    },
+    {
+      "id": "R-AML-02",
+      "step": "identify",
+      "outcome": "REQUIRE_REVIEW",
+      "reason_code": "AML_PEP_HIT",
+      "law": "GwG §15 Abs. 3 Nr. 1 (verstärkte Sorgfaltspflichten bei PEP); §47",
+      "message_de": "Ihr Antrag wird geprüft."
+    },
+    {
+      "id": "R-AML-03",
+      "step": "identify",
+      "outcome": "REQUIRE_REVIEW",
+      "reason_code": "AML_HIGH_RISK_COUNTRY",
+      "law": "GwG §15 Abs. 3 Nr. 2 (Drittstaaten mit hohem Risiko); §47",
+      "message_de": "Ihr Antrag wird geprüft."
+    },
+    {
+      "id": "R-TAX-01",
+      "step": "tax_declaration",
+      "outcome": "REQUIRE_CUSTOMER",
+      "reason_code": "TAX_ID_MISSING",
+      "law": "AO §139b; EStG §44a",
+      "message_de": "Ohne Steuer-Identifikationsnummer kann das Depot nicht eröffnet werden."
+    },
+    {
+      "id": "R-TAX-02",
+      "step": "tax_declaration",
+      "outcome": "REQUIRE_REVIEW",
+      "reason_code": "TAX_FOREIGN_RESIDENCY",
+      "law": "FKAustG §3a Abs. 2 (CRS-Selbstauskunft)",
+      "message_de": "Bei steuerlicher Ansässigkeit im Ausland prüft ein Mitarbeiter die Selbstauskunft."
+    },
+    {
+      "id": "R-TAX-03",
+      "step": "tax_declaration",
+      "outcome": "REQUIRE_REVIEW",
+      "reason_code": "TAX_US_INDICIA",
+      "law": "FATCA-Abkommen DE/USA; FATCA-USA-UmsV",
+      "message_de": "Bei US-Bezug sind zusätzliche Formulare (W-9/W-8BEN) erforderlich."
+    },
+    {
+      "id": "R-TAX-04",
+      "step": "tax_declaration",
+      "outcome": "REQUIRE_CUSTOMER",
+      "reason_code": "TAX_DECLARATION_UNSIGNED",
+      "law": "FKAustG §3a Abs. 2 (Erklärung des Kontoinhabers); BGB Zurechnung",
+      "message_de": "Die steuerliche Selbstauskunft muss vom Kunden selbst bestätigt werden."
+    },
+    {
+      "id": "R-SVC-01",
+      "step": "appropriateness",
+      "outcome": "ALLOW",
+      "reason_code": null,
+      "law": "WpHG §63 Abs. 10/11 — die Pflicht knüpft an die Dienstleistung, nicht an das leere Depot",
+      "message_de": null
+    },
+    {
+      "id": "R-WPHG-01",
+      "step": "appropriateness",
+      "outcome": "REQUIRE_CUSTOMER",
+      "reason_code": "PRODUCT_OUTSIDE_UNLOCKED",
+      "law": "WpHG §63 Abs. 10 (Angemessenheitsprüfung); MaComp BT 6",
+      "message_de": "Für die gewünschten Produktklassen liegen keine ausreichenden Kenntnisse und Erfahrungen vor (Warnhinweis nach §63 Abs. 10 WpHG)."
+    },
+    {
+      "id": "R-WPHG-02",
+      "step": "appropriateness",
+      "outcome": "REQUIRE_REVIEW",
+      "reason_code": "ADVICE_REQUESTED",
+      "law": "WpHG §64 Abs. 3 (Geeignetheitsprüfung bei Anlageberatung)",
+      "message_de": "Eine Anlageberatung erfolgt durch Ihre Partnerbank. Wir vermitteln einen Termin."
+    },
+    {
+      "id": "R-WPHG-03",
+      "step": "appropriateness",
+      "outcome": "REQUIRE_REVIEW",
+      "reason_code": "COMPLEX_PRODUCT",
+      "law": "WpHG §63 Abs. 11 (Execution-only nur für nicht-komplexe Instrumente)",
+      "message_de": "Komplexe Finanzinstrumente sind im Agentenkanal nicht autonom freischaltbar."
+    },
+    {
+      "id": "R-CTR-01",
+      "step": "sign_contract",
+      "outcome": "REQUIRE_CUSTOMER",
+      "reason_code": "CONTRACT_UNSIGNED",
+      "law": "BGB §§ 312c ff. (Fernabsatz), eIDAS Art. 25 (QES); Zurechnung der Willenserklärung",
+      "message_de": "Der Depotvertrag muss vom Kunden persönlich signiert werden."
+    },
+    {
+      "id": "R-CTR-02",
+      "step": "sign_contract",
+      "outcome": "REQUIRE_CUSTOMER",
+      "reason_code": "SNAPSHOT_STALE",
+      "law": "BGB Vertragsschluss — Antrag und Annahme müssen inhaltlich übereinstimmen; Fernabsatz-Informationspflichten",
+      "message_de": "Die Vertragsunterlagen haben sich geändert. Bitte bestätigen Sie die aktualisierte Zusammenfassung erneut."
+    }
+  ]
+}
