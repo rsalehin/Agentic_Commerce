@@ -58,7 +58,7 @@ Legend: **G** gateway · **A** agent · **W** wallet · **C** core · **U** ui �
 - [x] **P3-02 (G)** Deprecation adapter demo: `IDENTITY_VERIFIER=eid_stub` swaps the wallet adapter for an eID stub without code change; documented in ADR-10 and `docs/deprecation-register.md`. — `1cf5c67`
 - [x] **P3-03 (A)** Replay-mode toggle in the UI header; interview fallback tested with network disabled. — `caac95d`
 - [x] **P3-04 (U)** Final German copy review, screenshots for the deck into `docs/assets/` (capture guide + reproducible replay-mode shots; PNGs captured manually). — `799e51d`
-- [ ] **P3-05 (D)** `docs/demo-script.md` finalised with timings; `docs/qa-cheatsheet.md` (expected interviewer questions + answers).
+- [x] **P3-05 (D)** `docs/demo-script.md` finalised with timings; `docs/qa-cheatsheet.md` (expected interviewer questions + answers). — `ea5ebcd`
 
 **Acceptance:** all three paths demoable in under 8 minutes; docs complete; tag `v1.0-interview`.
 
