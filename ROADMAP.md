@@ -33,7 +33,7 @@ Legend: **G** gateway · **A** agent · **W** wallet · **C** core · **U** ui �
 - [x] **P1-10 (A)** `agent/tests/test_happy_path.py`: headless run for persona `lena` reaches `DEPOT_OPENED` with a valid audit chain, using a recorded LLM transcript (no network in tests). — `d17a9cf`
 - [x] **P1-11 (G)** `GET /events` SSE stream of audit events + session state; `GET /sessions/{id}` for the UI. — `f3f376f`
 - [x] **P1-12 (U)** Split-screen UI: left chat (agent messages, human prompts with "Bestätigen/Signieren" buttons), right Ops-Konsole (state machine ribbon, audit list with evidence hashes, provider card with "verifiziert" badge). German copy. TRUSTEQ theme tokens. — `e410036`
-- [ ] **P1-13 (A)** Record the happy path into `fixtures/recorded_runs/lena.json`; `agent/replay/` replays it through the real gateway.
+- [x] **P1-13 (A)** Record the happy path into `fixtures/recorded_runs/lena.json`; `agent/replay/` replays it through the real gateway (in-process + over HTTP; `python -m agent.replay`). — `dba4e9c`
 
 **Acceptance:** Lena scenario runs live and in replay, ends with a Depot number, audit chain verifies, all tests green, ADR-01..06 status `accepted`.
 
