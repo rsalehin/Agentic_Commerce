@@ -5,12 +5,15 @@ FastMCP tools, rules engine and state machine are added in Phase 1.
 
 from __future__ import annotations
 
+import asyncio
+import json
 import os
+from collections.abc import AsyncIterator
 from typing import Any
 
 from dotenv import load_dotenv
-from fastapi import FastAPI
-from fastapi.responses import JSONResponse
+from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse, StreamingResponse
 
 from gateway.card import provider_jwks, signed_card
 from gateway.service import GatewayService
@@ -68,6 +71,34 @@ def create_app(service: GatewayService | None = None) -> FastAPI:
     @app.get("/v1/onboarding/{sid}")
     def status(sid: str) -> JSONResponse:
         return JSONResponse(service.handle("onboarding.status", {"session_id": sid}))
+
+    # --- UI feeds (P1-11) ------------------------------------------------------
+
+    @app.get("/sessions/{sid}")
+    def get_session(sid: str) -> JSONResponse:
+        snapshot = service.session_snapshot(sid)
+        if snapshot is None:
+            return JSONResponse({"error": {"code": "NOT_FOUND"}}, status_code=404)
+        return JSONResponse(snapshot)
+
+    @app.get("/events")
+    async def events(request: Request, after: int = 0, once: bool = False) -> StreamingResponse:
+        async def stream() -> AsyncIterator[str]:
+            index = after
+            log = service.event_log
+            while index < len(log):
+                yield f"data: {json.dumps(log[index])}\n\n"
+                index += 1
+            if once:
+                yield "event: done\ndata: {}\n\n"
+                return
+            while not await request.is_disconnected():
+                while index < len(service.event_log):
+                    yield f"data: {json.dumps(service.event_log[index])}\n\n"
+                    index += 1
+                await asyncio.sleep(0.25)
+
+        return StreamingResponse(stream(), media_type="text/event-stream")
 
     return app
 

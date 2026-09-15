@@ -94,6 +94,9 @@ class GatewayService:
         self.sessions: dict[str, SessionEntry] = {}
         self.used_sender_jtis: set[str] = set()
         self._products = {p["isin"]: p for p in provider_fixture()["products"]}
+        # Ops-console feed: serialized audit events across all sessions (P1-11).
+        self.event_log: list[dict[str, Any]] = []
+        self._published: dict[str, int] = {}
 
     # --- dispatch --------------------------------------------------------------
 
@@ -109,7 +112,49 @@ class GatewayService:
         }.get(tool)
         if handler is None:
             return _err("INTERNAL", detail=f"unknown tool {tool}")
-        return handler(payload)
+        try:
+            return handler(payload)
+        finally:
+            self._drain_events()
+
+    # --- ops feed (P1-11) ------------------------------------------------------
+
+    def _event_dict(self, session_id: str, event: Any) -> dict[str, Any]:
+        return {
+            "session_id": session_id,
+            "seq": event.seq,
+            "ts": event.ts,
+            "actor": event.actor,
+            "from_state": event.from_state,
+            "to_state": event.to_state,
+            "tool": event.tool,
+            "reason_codes": event.reason_codes,  # real codes: Ops console (GwG §47 ok)
+            "evidence_hash": event.evidence_hash,
+            "hash": event.hash,
+        }
+
+    def _drain_events(self) -> None:
+        for sid, entry in self.sessions.items():
+            events = entry.session.events
+            start = self._published.get(sid, 0)
+            for event in events[start:]:
+                self.event_log.append(self._event_dict(sid, event))
+            self._published[sid] = len(events)
+
+    def session_snapshot(self, session_id: str) -> dict[str, Any] | None:
+        entry = self.sessions.get(session_id)
+        if entry is None:
+            return None
+        sess = entry.session
+        return {
+            "session_id": session_id,
+            "state": sess.state,
+            "blocked_from": sess.blocked_from,
+            "reason_codes": entry.reason_codes,
+            "service_mode": entry.service_mode,
+            "audit_chain_ok": sess.audit_chain_ok(),
+            "events": [self._event_dict(session_id, e) for e in sess.events],
+        }
 
     # --- helpers ---------------------------------------------------------------
 
