@@ -25,6 +25,12 @@ export const STATE_SPINE = [
   "DEPOT_OPENED",
 ] as const;
 
+export const SERVICE_MODE_DE: Record<string, string> = {
+  account_only: "Nur Kontoeröffnung (keine Prüfpflicht)",
+  non_advised: "Beratungsfrei (Angemessenheit)",
+  advised: "Mit Beratung",
+};
+
 export const STATE_LABEL_DE: Record<string, string> = {
   DISCOVERED: "Anbieter verifiziert",
   MANDATE_VALID: "Mandat gültig",
