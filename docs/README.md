@@ -14,7 +14,9 @@
 | test-plan.md | Adversarial/negative-test backlog (dossier T-cases → our reason codes) | Phases 1–3 |
 | decisions/ | ADR-01..12 = Entscheidungslog required by the case | Deck |
 | deprecation-register.md | Standards and their expected end-of-life | ADR-10, deck |
-| demo-script.md | 10-minute presentation + live demo script | Interview |
+| demo-script.md | 10-minute presentation + live demo script (with timings) | Interview |
+| qa-cheatsheet.md | Expected interviewer questions + answers (DE) | Interview |
+| assets/ | Deck screenshots + capture guide | Deck |
 | glossar.md | DE/EN glossary | Everyone |
 
 Rule: change a source-of-truth doc first, then the code, in the same commit.
