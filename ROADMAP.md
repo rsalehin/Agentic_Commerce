@@ -31,7 +31,7 @@ Legend: **G** gateway · **A** agent · **W** wallet · **C** core · **U** ui �
 - [x] **P1-08 (G)** Command handlers exposed via **REST (FastAPI `/v1/...`) and MCP (FastMCP) over the same handlers** — `onboarding.start/identify/tax_declaration/appropriateness/get_documents/sign_contract(/confirm)/status/get_opening_status` exactly per `docs/05`. Human-only tools reject payloads without a valid holder signature. **Identical-policy test:** a raw HTTP request and an MCP call with the same payload produce identical policy decisions and audit events. — `4a9c6e2`
 - [x] **P1-09 (A)** Orchestrator: plain-Python loop with Anthropic tool use; tools = the MCP tools + local `wallet.*` tools + `ask_human(question, payload_to_sign?)`. System prompt in `agent/prompts/kundenagent.de.md`. Provider abstraction in `agent/llm/`. — `7288ab8`
 - [x] **P1-10 (A)** `agent/tests/test_happy_path.py`: headless run for persona `lena` reaches `DEPOT_OPENED` with a valid audit chain, using a recorded LLM transcript (no network in tests). — `d17a9cf`
-- [ ] **P1-11 (G)** `GET /events` SSE stream of audit events + session state; `GET /sessions/{id}` for the UI.
+- [x] **P1-11 (G)** `GET /events` SSE stream of audit events + session state; `GET /sessions/{id}` for the UI. — `f3f376f`
 - [ ] **P1-12 (U)** Split-screen UI: left chat (agent messages, human prompts with "Bestätigen/Signieren" buttons), right Ops-Konsole (state machine ribbon, audit list with evidence hashes, provider card with "verifiziert" badge). German copy. TRUSTEQ theme tokens.
 - [ ] **P1-13 (A)** Record the happy path into `fixtures/recorded_runs/lena.json`; `agent/replay/` replays it through the real gateway.
 
