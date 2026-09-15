@@ -80,6 +80,29 @@ def create_app(service: GatewayService | None = None) -> FastAPI:
     def status(sid: str) -> JSONResponse:
         return JSONResponse(service.handle("onboarding.status", {"session_id": sid}))
 
+    # --- escalation queues (P2-01) ---------------------------------------------
+
+    @app.get("/escalations")
+    def list_escalations(queue: str | None = None) -> JSONResponse:
+        return JSONResponse({"escalations": service.list_escalations(queue)})
+
+    @app.get("/escalations/{eid}")
+    def get_escalation(eid: str) -> JSONResponse:
+        esc = service.get_escalation(eid)
+        if esc is None:
+            return JSONResponse({"error": {"code": "NOT_FOUND"}}, status_code=404)
+        return JSONResponse(esc)
+
+    @app.post("/escalations/{eid}/decision")
+    def decide_escalation(eid: str, body: dict[str, Any]) -> JSONResponse:
+        result = service.decide_escalation(
+            eid,
+            body.get("decision", ""),
+            note=body.get("note"),
+            actor=body.get("actor", "adviser"),
+        )
+        return JSONResponse(result, status_code=200 if result.get("ok") else 400)
+
     # --- UI feeds (P1-11) ------------------------------------------------------
 
     @app.get("/sessions/{sid}")

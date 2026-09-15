@@ -13,6 +13,7 @@ import hashlib
 import secrets
 import time
 from dataclasses import dataclass, field
+from datetime import UTC, datetime
 from typing import Any
 
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
@@ -28,6 +29,7 @@ from gateway.adapters.revocation import RevocationChecker
 from gateway.adapters.wallet_sdjwt import WalletSdJwtVerifier
 from gateway.canonical import jcs_canonicalize
 from gateway.card import provider_fingerprint
+from gateway.escalation import Escalation
 from gateway.jws import JwsError, verify_compact
 from gateway.models.mandate import Mandate
 from gateway.rules.engine import PolicyDecision, RulesEngine
@@ -108,6 +110,8 @@ class GatewayService:
         # Ops-console feed: serialized audit events across all sessions (P1-11).
         self.event_log: list[dict[str, Any]] = []
         self._published: dict[str, int] = {}
+        # Escalation queues (P2-01).
+        self.escalations: dict[str, Escalation] = {}
 
     # --- dispatch --------------------------------------------------------------
 
@@ -265,8 +269,81 @@ class GatewayService:
                 rules=rules,
                 policy_version=decision.policy_version,
             )
+            self._create_escalation(entry, decision)
             return _human(sess.state, decision)
         return None
+
+    # --- escalation queues (P2-01) ---------------------------------------------
+
+    def _create_escalation(self, entry: SessionEntry, decision: PolicyDecision) -> Escalation:
+        sess = entry.session
+        if decision.outcome == "REQUIRE_CUSTOMER":
+            queue, role = "customer", "customer"
+        else:
+            role = "compliance" if decision.confidential else "adviser"
+            queue = "review"
+        evidence = [e.evidence_hash for e in sess.events if e.evidence_hash]
+        esc = Escalation(
+            id=f"esc_{len(self.escalations) + 1:04d}",
+            session_id=sess.session_id,
+            queue=queue,
+            actor_role=role,
+            reasons=list(decision.reason_codes),
+            blocked_from=sess.blocked_from,
+            created_at=datetime.now(UTC).isoformat(),
+            confidential=decision.confidential,
+            evidence_hashes=evidence,
+        )
+        self.escalations[esc.id] = esc
+        return esc
+
+    def list_escalations(self, queue: str | None = None) -> list[dict[str, Any]]:
+        items = list(self.escalations.values())
+        if queue is not None:
+            items = [e for e in items if e.queue == queue]
+        return [e.to_dict() for e in items]
+
+    def get_escalation(self, escalation_id: str) -> dict[str, Any] | None:
+        esc = self.escalations.get(escalation_id)
+        return esc.to_dict() if esc else None
+
+    def decide_escalation(
+        self, escalation_id: str, decision: str, *, note: str | None = None, actor: str = "adviser"
+    ) -> dict[str, Any]:
+        esc = self.escalations.get(escalation_id)
+        if esc is None:
+            return _err("NOT_FOUND", detail=f"unknown escalation {escalation_id}")
+        if esc.status != "open":
+            return _err("WRONG_STATE", detail=f"escalation already {esc.status}")
+        entry = self.sessions.get(esc.session_id)
+        if entry is None:
+            return _err("WRONG_STATE", detail="session gone")
+        sess = entry.session
+        try:
+            if decision == "approve":
+                sess.resume(actor=actor)
+                esc.status = "approved"
+            elif decision == "request_appointment":
+                if esc.queue != "review":
+                    return _err("WRONG_STATE", detail="appointment only for review queue")
+                sess.handoff(actor=actor)
+                esc.status = "appointment"
+            elif decision == "reject":
+                if esc.queue != "review":
+                    return _err("WRONG_STATE", detail="reject only for review queue")
+                sess.to_rejected(reason_codes=["REVIEW_REJECTED"], actor=actor, tool=None)
+                esc.status = "rejected"
+            else:
+                return _err("INTERNAL", detail=f"unknown decision {decision}")
+        except Exception as exc:  # noqa: BLE001 - map state errors to envelope
+            return _err("WRONG_STATE", detail=str(exc))
+        finally:
+            self._drain_events()
+        esc.note = note
+        esc.decided_by = actor
+        if decision == "approve":
+            entry.reason_codes = []
+        return {"ok": True, "escalation": esc.to_dict(), "state": sess.state}
 
     def _consume_sender(self, ctx: dict[str, Any]) -> None:
         jti = ctx.get("sender_proof_jti")
