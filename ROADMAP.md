@@ -56,7 +56,7 @@ Legend: **G** gateway · **A** agent · **W** wallet · **C** core · **U** ui �
 
 - [x] **P3-01 (A+G)** Negative-case demo (per `docs/P1-00 §7`): (1) agent calls `/confirm` without a holder signature → `CUSTOMER_REQUIRED`, no Depot; (2) identical `/confirm` retry (same `idempotency_key`) → same Depot number, count = 1; (3) `pricing_version` changes after confirmation → `SNAPSHOT_STALE` → re-confirm. Plus the injected-instruction over-limit call → `MANDATE_SCOPE_EXCEEDED` (red event), and the validly-signed lookalike/forged card → discovery refuses. — `d786b2c`
 - [x] **P3-02 (G)** Deprecation adapter demo: `IDENTITY_VERIFIER=eid_stub` swaps the wallet adapter for an eID stub without code change; documented in ADR-10 and `docs/deprecation-register.md`. — `1cf5c67`
-- [ ] **P3-03 (A)** Replay-mode toggle in the UI header; interview fallback tested with network disabled.
+- [x] **P3-03 (A)** Replay-mode toggle in the UI header; interview fallback tested with network disabled. — `caac95d`
 - [ ] **P3-04 (U)** Final German copy review, screenshots for the deck into `docs/assets/`.
 - [ ] **P3-05 (D)** `docs/demo-script.md` finalised with timings; `docs/qa-cheatsheet.md` (expected interviewer questions + answers).
 
