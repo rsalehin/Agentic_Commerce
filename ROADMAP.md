@@ -46,7 +46,7 @@ Legend: **G** gateway · **A** agent · **W** wallet · **C** core · **U** ui �
 - [x] **P2-03 (U)** Adviser panel in the Ops-Konsole (partner bank persona "Volksbank Leipzig, Beraterin Frau Weber"): list, detail with rule citations, decision buttons. — `454cf6a`
 - [x] **P2-04 (A)** Persona `marco` end-to-end: agent explains the handoff in German, waits, continues after adviser decision. — `def54b8`
 - [x] **P2-05 (G)** Nachweis view: `GET /sessions/{id}/evidence` mapping each rule to the evidence that satisfied it; JSON export. — `97c87bd`
-- [ ] **P2-06 (A)** Record `fixtures/recorded_runs/marco.json`.
+- [x] **P2-06 (A)** Record `fixtures/recorded_runs/marco.json`. — `63b7da0`
 
 **Acceptance:** Marco scenario runs live and in replay; ADR-07 accepted.
 
