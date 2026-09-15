@@ -82,6 +82,10 @@ def create_app(service: GatewayService | None = None) -> FastAPI:
 
     # --- escalation queues (P2-01) ---------------------------------------------
 
+    @app.get("/rules")
+    def rules_catalogue() -> JSONResponse:
+        return JSONResponse({"rules": service.rules_catalogue()})
+
     @app.get("/escalations")
     def list_escalations(queue: str | None = None) -> JSONResponse:
         return JSONResponse({"escalations": service.list_escalations(queue)})

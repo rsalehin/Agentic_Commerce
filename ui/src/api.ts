@@ -1,4 +1,4 @@
-import type { AgentCard, AuditEvent, SessionSnapshot } from "./types";
+import type { AgentCard, AuditEvent, Escalation, RuleInfo, SessionSnapshot } from "./types";
 
 export const API_BASE =
   (import.meta.env.VITE_GATEWAY_URL as string | undefined) ?? "http://localhost:8080";
@@ -15,6 +15,31 @@ export async function fetchCard(): Promise<AgentCard | null> {
   } catch {
     return null;
   }
+}
+
+export async function fetchEscalations(): Promise<Escalation[]> {
+  const resp = await fetch(`${API_BASE}/escalations`);
+  if (!resp.ok) return [];
+  return ((await resp.json()) as { escalations: Escalation[] }).escalations;
+}
+
+export async function fetchRules(): Promise<RuleInfo[]> {
+  const resp = await fetch(`${API_BASE}/rules`);
+  if (!resp.ok) return [];
+  return ((await resp.json()) as { rules: RuleInfo[] }).rules;
+}
+
+export async function decideEscalation(
+  id: string,
+  decision: "approve" | "request_appointment" | "reject",
+  actor: string,
+  note?: string,
+): Promise<void> {
+  await fetch(`${API_BASE}/escalations/${id}/decision`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ decision, actor, note }),
+  });
 }
 
 /** Subscribe to the live audit feed (SSE). Returns an unsubscribe function. */

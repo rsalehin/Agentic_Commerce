@@ -1,17 +1,23 @@
-import type { AgentCard, AuditEvent, SessionSnapshot } from "../types";
+import type { AgentCard, AuditEvent, Escalation, RuleInfo, SessionSnapshot } from "../types";
 import { STATE_LABEL_DE } from "../theme";
+import { AdviserPanel } from "./AdviserPanel";
 import { AuditList } from "./AuditList";
 import { ProviderCard } from "./ProviderCard";
 import { StateRibbon } from "./StateRibbon";
+
+type Decision = "approve" | "request_appointment" | "reject";
 
 interface Props {
   card: AgentCard | null;
   events: AuditEvent[];
   snapshot: SessionSnapshot | null;
   state: string | null;
+  escalations: Escalation[];
+  rules: RuleInfo[];
+  onDecide: (id: string, decision: Decision) => void;
 }
 
-export function OpsConsole({ card, events, snapshot, state }: Props) {
+export function OpsConsole({ card, events, snapshot, state, escalations, rules, onDecide }: Props) {
   return (
     <div className="pane">
       <h2>Ops-Konsole</h2>
@@ -35,6 +41,7 @@ export function OpsConsole({ card, events, snapshot, state }: Props) {
           </div>
         </div>
         <StateRibbon state={state} />
+        <AdviserPanel escalations={escalations} rules={rules} onDecide={onDecide} />
         <AuditList events={events} chainOk={snapshot ? snapshot.audit_chain_ok : null} />
       </div>
     </div>

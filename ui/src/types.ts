@@ -21,6 +21,29 @@ export interface SessionSnapshot {
   events: AuditEvent[];
 }
 
+export interface Escalation {
+  id: string;
+  session_id: string;
+  queue: "customer" | "review";
+  actor_role: "customer" | "adviser" | "compliance";
+  reasons: string[];
+  blocked_from: string | null;
+  blocked_tool: string | null;
+  confidential: boolean;
+  status: "open" | "approved" | "appointment" | "rejected";
+  note: string | null;
+  decided_by: string | null;
+}
+
+export interface RuleInfo {
+  id: string;
+  step: string;
+  outcome: string;
+  reason_code: string | null;
+  law: string;
+  message_de: string | null;
+}
+
 export interface AgentCard {
   name: string;
   description?: string;

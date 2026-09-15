@@ -1,9 +1,18 @@
 import { useEffect, useMemo, useState } from "react";
 
-import { fetchCard, fetchSession, subscribeEvents } from "./api";
+import {
+  decideEscalation,
+  fetchCard,
+  fetchEscalations,
+  fetchRules,
+  fetchSession,
+  subscribeEvents,
+} from "./api";
 import { ChatPanel } from "./components/ChatPanel";
 import { OpsConsole } from "./components/OpsConsole";
-import type { AgentCard, AuditEvent, SessionSnapshot } from "./types";
+import type { AgentCard, AuditEvent, Escalation, RuleInfo, SessionSnapshot } from "./types";
+
+type Decision = "approve" | "request_appointment" | "reject";
 
 function querySession(): string | null {
   return new URLSearchParams(window.location.search).get("session");
@@ -13,13 +22,22 @@ export default function App() {
   const [events, setEvents] = useState<AuditEvent[]>([]);
   const [card, setCard] = useState<AgentCard | null>(null);
   const [snapshot, setSnapshot] = useState<SessionSnapshot | null>(null);
+  const [escalations, setEscalations] = useState<Escalation[]>([]);
+  const [rules, setRules] = useState<RuleInfo[]>([]);
   const [pinned] = useState<string | null>(querySession());
 
   useEffect(() => {
     fetchCard().then(setCard);
+    fetchRules().then(setRules);
     const unsub = subscribeEvents((e) => setEvents((prev) => [...prev, e]));
     return unsub;
   }, []);
+
+  async function onDecide(id: string, decision: Decision) {
+    await decideEscalation(id, decision, "adviser");
+    setEscalations(await fetchEscalations());
+    if (activeSession) setSnapshot(await fetchSession(activeSession));
+  }
 
   // Active session: the pinned one (?session=) or the most recently seen.
   const activeSession = useMemo(() => {
@@ -28,10 +46,10 @@ export default function App() {
     return null;
   }, [events, pinned]);
 
-  // Refresh the snapshot whenever new events arrive for the active session.
+  // Refresh the snapshot + escalations whenever new events arrive.
   useEffect(() => {
-    if (!activeSession) return;
-    fetchSession(activeSession).then(setSnapshot);
+    fetchEscalations().then(setEscalations);
+    if (activeSession) fetchSession(activeSession).then(setSnapshot);
   }, [activeSession, events.length]);
 
   const sessionEvents = useMemo(
@@ -53,7 +71,15 @@ export default function App() {
       </header>
       <div className="split">
         <ChatPanel events={sessionEvents} />
-        <OpsConsole card={card} events={sessionEvents} snapshot={snapshot} state={state} />
+        <OpsConsole
+          card={card}
+          events={sessionEvents}
+          snapshot={snapshot}
+          state={state}
+          escalations={escalations}
+          rules={rules}
+          onDecide={onDecide}
+        />
       </div>
     </div>
   );

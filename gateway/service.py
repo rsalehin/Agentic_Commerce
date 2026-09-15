@@ -316,6 +316,20 @@ class GatewayService:
             return NEXT_TOOL.get(sess.blocked_from)
         return NEXT_TOOL.get(sess.state)
 
+    def rules_catalogue(self) -> list[dict[str, Any]]:
+        """reason_code -> legal basis, for the adviser panel (P2-03)."""
+        return [
+            {
+                "id": r["id"],
+                "step": r["step"],
+                "outcome": r["outcome"],
+                "reason_code": r.get("reason_code"),
+                "law": r["law"],
+                "message_de": r.get("message_de"),
+            }
+            for r in self.engine.rules
+        ]
+
     def _open_escalation(self, session_id: str) -> dict[str, Any] | None:
         for esc in self.escalations.values():
             if esc.session_id == session_id and esc.status == "open":
