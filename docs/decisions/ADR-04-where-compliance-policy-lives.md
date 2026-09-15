@@ -1,6 +1,6 @@
 # ADR-04: Where compliance policy lives
 
-**Status:** proposed · **Date:** 2026-09-14 · **Deciders:** Abir (author), reviewed with Claude Code
+**Status:** accepted · **Date:** 2026-09-14 (impl. P1-06) · **Deciders:** Abir (author), reviewed with Claude Code
 
 ## Entscheidung (what had to be decided)
 Does an LLM judge compliance, or a deterministic engine?

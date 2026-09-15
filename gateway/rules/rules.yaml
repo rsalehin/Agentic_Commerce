@@ -196,7 +196,7 @@ rules:
     informational: true
     law: "WpHG §63 Abs. 10/11 — die Pflicht knüpft an die Dienstleistung, nicht an das leere Depot"
     description: "Classify service_mode: account_only when requested_classes empty (appropriateness NOT_REQUIRED, reason recorded); non_advised when requested_classes non-empty; advised routes to review via R-WPHG-02."
-    when: "true"
+    when: "True"
     outcome: ALLOW
     sets: service_mode
 
