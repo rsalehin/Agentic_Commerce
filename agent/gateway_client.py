@@ -14,6 +14,10 @@ class GatewayClient(Protocol):
 
     def htu(self, tool: str, session_id: str) -> str: ...
 
+    def list_open_reviews(self, session_id: str) -> list[dict[str, Any]]: ...
+
+    def decide(self, escalation_id: str, decision: str, actor: str) -> dict[str, Any]: ...
+
 
 class InProcessGatewayClient:
     def __init__(self, service: Any) -> None:
@@ -28,3 +32,13 @@ class InProcessGatewayClient:
 
     def htu(self, tool: str, session_id: str) -> str:
         return self._service.htu(tool, session_id)
+
+    def list_open_reviews(self, session_id: str) -> list[dict[str, Any]]:
+        return [
+            e
+            for e in self._service.list_escalations(queue="review")
+            if e["session_id"] == session_id and e["status"] == "open"
+        ]
+
+    def decide(self, escalation_id: str, decision: str, actor: str) -> dict[str, Any]:
+        return self._service.decide_escalation(escalation_id, decision, actor=actor)

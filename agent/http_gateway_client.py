@@ -39,3 +39,13 @@ class HttpGatewayClient:
             return self._http.get(f"/v1/onboarding/{sid}").json()
         action = _REST_ACTION[tool]
         return self._http.post(f"/v1/onboarding/{sid}/{action}", json=body).json()
+
+    def list_open_reviews(self, session_id: str) -> list[dict[str, Any]]:
+        escs = self._http.get("/escalations?queue=review").json()["escalations"]
+        return [e for e in escs if e["session_id"] == session_id and e["status"] == "open"]
+
+    def decide(self, escalation_id: str, decision: str, actor: str) -> dict[str, Any]:
+        resp = self._http.post(
+            f"/escalations/{escalation_id}/decision", json={"decision": decision, "actor": actor}
+        )
+        return resp.json()

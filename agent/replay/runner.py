@@ -43,6 +43,7 @@ class RecordedRun:
     expected_final_state: str
     turns: list[dict[str, Any]]
     ask_human_default: dict[str, Any]
+    reviews: list[dict[str, Any]]  # recorded adviser/compliance decisions, in order
 
 
 def load_run(path: str | Path) -> RecordedRun:
@@ -53,6 +54,7 @@ def load_run(path: str | Path) -> RecordedRun:
         expected_final_state=data["expected_final_state"],
         turns=data["turns"],
         ask_human_default=data.get("ask_human_default", {"approved": True, "answer": "ja"}),
+        reviews=data.get("reviews", []),
     )
 
 
@@ -131,7 +133,19 @@ def replay(
     def ask_human(question_de: str, payload: dict[str, Any] | None) -> dict[str, Any]:
         return dict(run.ask_human_default)
 
+    # Apply the recorded staff decisions in order, one per review escalation.
+    decisions = iter(run.reviews)
+
+    def on_review(session_id: str) -> None:
+        decision = next(decisions, None)
+        if decision is None:
+            return
+        open_reviews = gateway.list_open_reviews(session_id)
+        if open_reviews:
+            actor = decision.get("actor", "adviser")
+            gateway.decide(open_reviews[-1]["id"], decision["decision"], actor)
+
     orchestrator = Orchestrator(
-        provider, gateway, wallet, ask_human, discover=discover, now=now
+        provider, gateway, wallet, ask_human, discover=discover, now=now, on_review=on_review
     )
     return orchestrator.run(run.intent_de)

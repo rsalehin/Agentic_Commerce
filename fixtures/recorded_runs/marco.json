@@ -1,0 +1,23 @@
+{
+  "_comment": "Recorded Kundenagent transcript for persona marco (P2-04/P2-06). Two escalations: a foreign-residency tax review (adviser approves) and a complex-product appropriateness review (adviser vereinbart Termin) -> ADVISED_HANDOFF. The `reviews` list holds the recorded adviser decisions applied in order during replay; crypto is regenerated live.",
+  "persona": "marco",
+  "intent_de": "Eröffne ein Depot bei der Fonds AG, ich möchte monatlich 300 Euro in ein Bonus-Zertifikat auf den DAX sparen.",
+  "expected_final_state": "ADVISED_HANDOFF",
+  "ask_human_default": { "approved": true, "answer": "ja" },
+  "reviews": [
+    { "decision": "approve", "actor": "adviser" },
+    { "decision": "request_appointment", "actor": "adviser" }
+  ],
+  "turns": [
+    { "tool": "discovery.verify", "input": { "url": "http://localhost:8080" } },
+    { "tool": "ask_human", "input": { "purpose": "mandate", "question_de": "Möchten Sie das Mandat für die Depoteröffnung erteilen (Fonds/ETF/Zertifikate, max. 300 €/Monat, keine Beratung)?" } },
+    { "tool": "wallet.create_mandate", "input": { "scope": { "product_classes": ["fonds", "etf", "zertifikate"], "monthly_amount_max": 300, "one_off_amount_max": 0, "advice_allowed": false } } },
+    { "tool": "onboarding.start", "input": {} },
+    { "tool": "wallet.present_pid", "input": { "requested_claims": ["given_name", "family_name", "birth_date", "nationalities", "address", "birth_place_country", "assurance_level"] } },
+    { "tool": "onboarding.identify", "input": { "reference_account_iban": "DE02120300000000202051" } },
+    { "tool": "ask_human", "input": { "purpose": "tax", "question_de": "Bitte bestätigen Sie Ihre steuerliche Selbstauskunft (Ansässigkeit DE und IT)." } },
+    { "tool": "wallet.sign_tax", "input": { "declaration": { "tax_id": "98765432109", "residencies": [{ "country": "DE", "tin": "98765432109" }, { "country": "IT", "tin": "RSSMRC85S02A944X" }], "us_person": false, "church_tax_query_consent": true, "freistellungsauftrag_eur": 0 } } },
+    { "tool": "onboarding.tax_declaration", "input": { "declaration": { "tax_id": "98765432109", "residencies": [{ "country": "DE", "tin": "98765432109" }, { "country": "IT", "tin": "RSSMRC85S02A944X" }], "us_person": false, "church_tax_query_consent": true, "freistellungsauftrag_eur": 0 } } },
+    { "tool": "onboarding.appropriateness", "input": { "profile": { "experience": { "fonds": { "years": 5, "trades_per_year": 6 }, "etf": { "years": 5, "trades_per_year": 6 }, "aktien": { "years": 3, "trades_per_year": 10 }, "zertifikate": { "years": 0, "trades_per_year": 0 }, "derivate": { "years": 0, "trades_per_year": 0 } }, "education": "Studium", "occupation": "Ingenieur", "requested_classes": ["fonds", "etf", "zertifikate"], "advice_requested": false } } }
+  ]
+}
