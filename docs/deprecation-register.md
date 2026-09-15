@@ -3,7 +3,7 @@
 | Component / standard | Status today (09/2026) | Expected change | Impact on us | Mitigation |
 |---|---|---|---|---|
 | VideoIdent (BaFin RS 3/2017) | Market standard for remote ID | AMLR 10.07.2027: only justified exception | None (not used) | Documented as rejected option (ADR-03) |
-| eID / Online-Ausweis | Available, low adoption | Basis of German EUDI Wallet | Fallback path | `eid_stub` adapter |
+| eID / Online-Ausweis | Available, low adoption | Basis of German EUDI Wallet | Fallback path | `eid_stub` adapter — **live swap** via `IDENTITY_VERIFIER=eid_stub` (P3-02), no gateway code change |
 | EUDI Wallet (DE) | Planned 01/2027, DIdG in cabinet 05/2026 | Private wallets ~12 months later | Core dependency of ADR-03 | Mock now; interface follows OpenID4VP/SD-JWT VC |
 | MCP | Stable; OAuth 2.1 since 01/2026 | Spec revisions quarterly | Tool transport | Version pinned in card; FastMCP upgrade path |
 | A2A | v1.0 (03/2026), signed cards | Task API evolution | Discovery only | `AgentDiscovery` port |

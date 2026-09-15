@@ -10,6 +10,7 @@ policy decision; the state machine (P1-07) owns state and the audit chain.
 from __future__ import annotations
 
 import hashlib
+import os
 import secrets
 import time
 from dataclasses import dataclass, field
@@ -32,6 +33,7 @@ from gateway.card import provider_fingerprint
 from gateway.escalation import Escalation
 from gateway.jws import JwsError, verify_compact
 from gateway.models.mandate import Mandate
+from gateway.ports.identity_verifier import IdentityVerifier
 from gateway.rules.engine import PolicyDecision, RulesEngine
 from gateway.state import (
     APPROPRIATENESS_DONE,
@@ -73,6 +75,20 @@ REVIEW_TARGET: dict[str, str] = {
 }
 
 
+def build_identity_verifier(name: str | None = None) -> IdentityVerifier:
+    """Select the IdentityVerifier adapter by config (ADR-03/ADR-10 deprecation swap)."""
+    name = name or os.environ.get("IDENTITY_VERIFIER", "wallet_sdjwt")
+    if name == "wallet_sdjwt":
+        from wallet.app import issuer_jwks
+
+        return WalletSdJwtVerifier(issuer_jwks())
+    if name == "eid_stub":
+        from gateway.adapters.eid_stub import EidStubVerifier
+
+        return EidStubVerifier()
+    raise ValueError(f"unknown IDENTITY_VERIFIER: {name}")
+
+
 def canonical_htu(provider_domain: str, tool: str, session_id: str) -> str:
     """The canonical `htu` bound by x-sender-proof (agent and gateway must agree).
 
@@ -106,7 +122,7 @@ class GatewayService:
         rules_engine: RulesEngine | None = None,
         mandate_verifier: JwsMandateVerifier | None = None,
         client_registry: ClientRegistry | None = None,
-        identity_verifier: WalletSdJwtVerifier | None = None,
+        identity_verifier: IdentityVerifier | None = None,
         revocation: RevocationChecker | None = None,
         core: DepotbankCore | None = None,
         clock: Any = None,
@@ -116,11 +132,7 @@ class GatewayService:
         self.engine = rules_engine or RulesEngine()
         self.mandate_verifier = mandate_verifier or JwsMandateVerifier()
         self.client_registry = client_registry or ClientRegistry()
-        if identity_verifier is None:
-            from wallet.app import issuer_jwks
-
-            identity_verifier = WalletSdJwtVerifier(issuer_jwks())
-        self.identity_verifier = identity_verifier
+        self.identity_verifier = identity_verifier or build_identity_verifier()
         self.revocation = revocation or RevocationChecker(registry=self.client_registry)
         self.core = core or DepotbankCore(make_engine())
         self._clock = clock
