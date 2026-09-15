@@ -170,12 +170,24 @@ class Session:
         return event
 
     def resume(self, *, actor: str = "adviser", tool: str | None = None) -> AuditEvent:
+        """Re-run the blocked step: return to blocked_from (customer resolution)."""
         if self.state not in (CUSTOMER_REQUIRED, REVIEW_REQUIRED):
             raise WrongStateError(f"cannot resume from {self.state}")
         if self.blocked_from is None:
             raise WrongStateError("no blocked_from recorded")
         target = self.blocked_from
-        event = self._transition(target, actor=actor, tool=tool)  # resumes exactly at blocked_from
+        event = self._transition(target, actor=actor, tool=tool)
+        self.blocked_from = None
+        return event
+
+    def resume_to(
+        self, to_state: str, *, actor: str = "adviser", tool: str | None = None
+    ) -> AuditEvent:
+        """Complete the blocked step via staff review: advance to its target state
+        (the manual check replaces the automated gate)."""
+        if self.state not in (CUSTOMER_REQUIRED, REVIEW_REQUIRED):
+            raise WrongStateError(f"cannot resume from {self.state}")
+        event = self._transition(to_state, actor=actor, tool=tool)
         self.blocked_from = None
         return event
 

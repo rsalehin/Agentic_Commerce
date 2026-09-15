@@ -44,7 +44,7 @@ def _tax(svc: GatewayService, sid: str, decl: dict[str, Any]) -> dict[str, Any]:
     )
 
 
-def test_approve_resumes_and_agent_reruns_blocked_step() -> None:
+def test_review_approve_completes_step_and_agent_continues() -> None:
     svc = make_service()
     sid = _identified(svc, "lena")
 
@@ -62,15 +62,11 @@ def test_approve_resumes_and_agent_reruns_blocked_step() -> None:
     assert blocked_status["next_tool"] is None
     assert blocked_status["escalation"]["id"] == esc["id"]
 
-    # Adviser approves -> resumes at SCREENED, structured next-step points at the blocked tool.
+    # A review approval COMPLETES the step (the manual check clears the gate):
+    # advance to TAX_CONFIRMED, next-step is the following tool.
     result = svc.decide_escalation(esc["id"], "approve", actor="adviser")
-    assert result["state"] == "SCREENED"
-    assert result["next_tool"] == "onboarding.tax_declaration"
-    assert "wiederholen" in result["message_de"].lower()
-
-    # The agent re-runs the step (now DE-only) and proceeds.
-    env = _tax(svc, sid, declaration_for("lena"))
-    assert env["ok"] is True and env["state"] == "TAX_CONFIRMED"
+    assert result["state"] == "TAX_CONFIRMED"
+    assert result["next_tool"] == "onboarding.appropriateness"
     assert svc.sessions[sid].session.audit_chain_ok() is True
 
 

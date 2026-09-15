@@ -93,7 +93,7 @@ Every `PolicyDecision` carries `policy_version` (= the `version` of `rules.yaml`
 - **Session/auth guards (`ERROR`, per call):** agent client registered and active (`R-MND-05` → `CLIENT_UNREGISTERED`); `x-sender-proof` valid — signature, unused `jti`, `iat` within 60 s, and `mandate.agent.id == proof.client_id` (`R-MND-06` → `SENDER_BINDING_INVALID`); mandate scope (`R-MND-01` → `MANDATE_SCOPE_EXCEEDED`) and expiry (`R-MND-02` → `MANDATE_EXPIRED`). Guards return the error envelope, leave state **unchanged**, and are **retryable**; they never transition to `REJECTED`.
 - **Revocation on writes:** every state-changing call re-checks the mandate `revocation_url` and the client status; a hit is `MANDATE_REVOKED` (`R-MND-03`, `DENY`).
 - **Every guard rejection is audited:** append an `AuditEvent` with `from_state == to_state`, `actor: "agent"`, the attempted `tool`, and the `reason_codes` (this is what the `P3-01` manipulation demo reads).
-- `CUSTOMER_REQUIRED` / `REVIEW_REQUIRED` store `blocked_from`; resolution resumes exactly there, never skipping steps.
+- `CUSTOMER_REQUIRED` / `REVIEW_REQUIRED` store `blocked_from`. Resolution never skips ahead more than the blocked step: a **customer** resolution re-runs the step from `blocked_from` (the customer supplied the missing thing); a **review** approval *completes* the blocked step — the staff manual check replaces the automated gate, so it advances to that step's target state (e.g. `REVIEW_REQUIRED → TAX_CONFIRMED`). Reject → `REVIEW_REJECTED → REJECTED`; request_appointment → `ADVISED_HANDOFF`.
 
 ## Confidential compliance status (GwG § 47)
 

@@ -78,6 +78,7 @@ class Orchestrator:
         max_steps: int = 40,
         now: Callable[[], int] | None = None,
         discover: Callable[[str], Any] | None = None,
+        on_review: Callable[[str], None] | None = None,
     ) -> None:
         self.provider = provider
         self.gateway = gateway
@@ -86,6 +87,9 @@ class Orchestrator:
         self.max_steps = max_steps
         self._now = now or (lambda: int(time.time()))
         self._discover = discover or discovery.verify
+        # Called when a call lands in REVIEW_REQUIRED: staff decide out of band
+        # (the Ops panel). In tests/replay this applies the adviser decision.
+        self._on_review = on_review
         self.system = PROMPT_PATH.read_text(encoding="utf-8")
         # run state
         self._artifacts: dict[str, str] = {}
@@ -254,6 +258,14 @@ class Orchestrator:
             )
         env = self.gateway.call(tool, payload)
         self._absorb(tool, env)
+        # Human-in-the-loop: staff review. The agent hands off and waits; the
+        # adviser/compliance decision arrives out of band, then we read the new
+        # state and let the loop continue from there.
+        in_review = env.get("human_required") and self._state == "REVIEW_REQUIRED"
+        if in_review and self._on_review and self._sid:
+            self._on_review(self._sid)
+            status = self.gateway.call("onboarding.status", {"session_id": self._sid})
+            self._absorb("onboarding.status", status)
         return env
 
     def _absorb(self, tool: str, env: dict[str, Any]) -> None:

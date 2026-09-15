@@ -65,6 +65,13 @@ NEXT_TOOL: dict[str, str] = {
     "INFORMED": "onboarding.sign_contract",
 }
 
+# Target state a review approval advances to (the manual check clears the gate).
+REVIEW_TARGET: dict[str, str] = {
+    "onboarding.identify": "SCREENED",
+    "onboarding.tax_declaration": "TAX_CONFIRMED",
+    "onboarding.appropriateness": "APPROPRIATENESS_DONE",
+}
+
 
 def canonical_htu(provider_domain: str, tool: str, session_id: str) -> str:
     """The canonical `htu` bound by x-sender-proof (agent and gateway must agree).
@@ -360,7 +367,12 @@ class GatewayService:
         sess = entry.session
         try:
             if decision == "approve":
-                sess.resume(actor=actor)
+                if esc.queue == "review":
+                    fallback = esc.blocked_from or sess.state
+                    target = REVIEW_TARGET.get(esc.blocked_tool or "", fallback)
+                    sess.resume_to(target, actor=actor)  # manual check completes the step
+                else:
+                    sess.resume(actor=actor)  # customer re-runs the step
                 esc.status = "approved"
             elif decision == "request_appointment":
                 if esc.queue != "review":

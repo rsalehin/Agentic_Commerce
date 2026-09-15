@@ -62,7 +62,7 @@ def test_foreign_residency_creates_adviser_review_escalation_and_resume() -> Non
 
     result = svc.decide_escalation(esc["id"], "approve", actor="adviser", note="ok")
     assert result["ok"] is True
-    assert result["state"] == "SCREENED"  # resumes at blocked_from
+    assert result["state"] == "TAX_CONFIRMED"  # review approval completes the step
     assert svc.sessions[sid].session.audit_chain_ok() is True
 
 
