@@ -43,7 +43,7 @@ Legend: **G** gateway · **A** agent · **W** wallet · **C** core · **U** ui �
 
 - [x] **P2-01 (G)** Escalation queues — **two queues**: `customer` (from `CUSTOMER_REQUIRED`, resolved by the agent via `ask_human`) and `review` (from `REVIEW_REQUIRED`, split **adviser** vs **compliance**; AML cases are compliance-only and confidential). `Escalation{session, queue, actor_role, reasons, evidence, status, note}`; endpoints `GET /escalations`, `POST /escalations/{id}/decision` (approve / request_appointment / reject → `REVIEW_REJECTED`). — `5acbec8`
 - [x] **P2-02 (G)** Resume logic: an approved escalation re-enters the state machine at the blocked step; appointment sets `ADVISED_HANDOFF` and returns a structured next-step to the agent. — `2efe65d`
-- [ ] **P2-03 (U)** Adviser panel in the Ops-Konsole (partner bank persona "Volksbank Leipzig, Beraterin Frau Weber"): list, detail with rule citations, decision buttons.
+- [x] **P2-03 (U)** Adviser panel in the Ops-Konsole (partner bank persona "Volksbank Leipzig, Beraterin Frau Weber"): list, detail with rule citations, decision buttons. — `454cf6a`
 - [ ] **P2-04 (A)** Persona `marco` end-to-end: agent explains the handoff in German, waits, continues after adviser decision.
 - [ ] **P2-05 (G)** Nachweis view: `GET /sessions/{id}/evidence` mapping each rule to the evidence that satisfied it; JSON export.
 - [ ] **P2-06 (A)** Record `fixtures/recorded_runs/marco.json`.
