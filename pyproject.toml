@@ -1,0 +1,61 @@
+[project]
+name = "agentic-depot"
+version = "0.1.0"
+description = "TRUSTEQ case study prototype: agentic Wertpapierdepot opening (gateway, agent, wallet, core)."
+readme = "README.md"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    # --- gateway (FastAPI + FastMCP server, crypto, storage) ---
+    "fastapi>=0.115",
+    # FastMCP 2.x standalone package. We use `from fastmcp import FastMCP`,
+    # NEVER `mcp.server.fastmcp`. Do not add a second FastMCP implementation.
+    "fastmcp>=2,<3",
+    "uvicorn[standard]>=0.30",
+    "pydantic>=2",
+    "sqlmodel>=0.0.22",
+    "pyjwt>=2.9",
+    "cryptography>=43",
+    "pyyaml>=6",
+    "python-dotenv>=1.0",
+    # --- agent (Anthropic SDK + official MCP client) ---
+    # `mcp` is the official client SDK (also a transitive dep of fastmcp, so
+    # there is exactly one MCP implementation in the environment).
+    "anthropic>=0.40",
+    "mcp>=1.2",
+    "httpx>=0.27",
+]
+
+[dependency-groups]
+dev = [
+    "ruff>=0.6",
+    "mypy>=1.11",
+    "pytest>=8",
+    "pytest-asyncio>=0.24",
+    "types-pyyaml",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+# The four service packages share one project and one .venv. They are flat
+# top-level packages (docs reference e.g. gateway/rules/rules.yaml), imported
+# from the repo root and run via `python -m <pkg>.app`.
+[tool.hatch.build.targets.wheel]
+packages = ["gateway", "agent", "wallet", "core"]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+# CI and the definition-of-done run `mypy gateway`; strict applies there.
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests", "gateway", "agent", "wallet", "core"]

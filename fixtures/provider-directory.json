@@ -1,0 +1,14 @@
+{
+  "_comment": "Agent-side verified provider directory (P1-00 §5 / ADR-06). The trust anchor: only domains listed here are trusted, and the card signature must verify against the pinned_kid below (not the jku the card points to). An unlisted domain -> PROVIDER_UNVERIFIED; a signature not matching pinned_kid -> CARD_SIGNATURE_INVALID. No PII is sent before both pass.",
+  "providers": [
+    {
+      "domain": "fonds-ag.example",
+      "discovery_url": "http://localhost:8080",
+      "legal_entity": "Fonds AG (Demo)",
+      "custodian": "Fonds AG Depotbank (Mock)",
+      "bafin_id": "MOCK-123456",
+      "lei": "5299000MOCK000000001",
+      "pinned_kid": "fonds-ag-2026"
+    }
+  ]
+}

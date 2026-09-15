@@ -1,0 +1,13 @@
+{
+  "name": "Fonds AG Depoteröffnung",
+  "description": "Agentenfähige Depoteröffnung der Fonds AG (Demo). Beratungsfreies Geschäft; Human-only-Schritte: steuerliche Selbstauskunft, Vertragssignatur.",
+  "version": "1.0.0",
+  "provider": { "organization": "Fonds AG (Demo)", "url": "https://fonds-ag.example", "lei": "5299000MOCK000000001", "bafin_id": "MOCK-123456", "custodian": "Fonds AG Depotbank (Mock)" },
+  "supportedInterfaces": [ { "protocol": "mcp", "url": "http://localhost:8080/mcp", "version": "2025-06-18" } ],
+  "capabilities": { "onboarding": "v1", "documents": "v1", "escalation": "v1" },
+  "securitySchemes": { "mandate": { "type": "http", "scheme": "bearer", "bearerFormat": "JWS-Mandate/v1" } },
+  "skills": [ { "id": "onboarding.v1", "name": "Depoteröffnung", "description": "Eröffnung eines Wertpapierdepots mit Sparplan (Fonds/ETF) auf Basis eines signierten Kundenmandats.", "inputModes": ["application/json"], "outputModes": ["application/json"] } ],
+  "termsManifest": "http://localhost:8080/terms-manifest.json",
+  "aiDisclosure_de": "Sie interagieren mit einem automatisierten System der Fonds AG (Art. 50 KI-VO).",
+  "signatures": []
+}
