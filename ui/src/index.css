@@ -1,0 +1,90 @@
+:root {
+  --navy: #003366;
+  --navy-2: #1a4775;
+  --navy-3: #335c85;
+  --navy-dark: #001733;
+  --gold: #ae9966;
+  --light: #f2f2f2;
+  --ok: #2e7d5b;
+  --warn: #b4791f;
+  --danger: #a83232;
+  --font: "Karla", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+* { box-sizing: border-box; }
+
+html, body, #root { height: 100%; margin: 0; }
+
+body {
+  font-family: var(--font);
+  color: var(--navy-dark);
+  background: var(--light);
+}
+
+.app { display: flex; flex-direction: column; height: 100vh; }
+
+.topbar {
+  display: flex; align-items: center; justify-content: space-between;
+  background: var(--navy-dark); color: #fff; padding: 10px 18px;
+}
+.topbar .brand { font-weight: 700; letter-spacing: 0.5px; }
+.topbar .brand span { color: var(--gold); }
+.topbar .sub { font-size: 12px; color: #b9c6d6; }
+
+.split { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; flex: 1; min-height: 0; background: #d8dde3; }
+@media (max-width: 900px) { .split { grid-template-columns: 1fr; } }
+
+.pane { background: #fff; display: flex; flex-direction: column; min-height: 0; }
+.pane h2 {
+  margin: 0; padding: 12px 16px; font-size: 13px; text-transform: uppercase;
+  letter-spacing: 1px; color: var(--navy-2); border-bottom: 1px solid #e6e9ee;
+}
+
+/* Chat */
+.chat { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 10px; }
+.bubble { max-width: 80%; padding: 10px 12px; border-radius: 12px; font-size: 14px; line-height: 1.35; }
+.bubble.agent { align-self: flex-start; background: var(--navy); color: #fff; border-bottom-left-radius: 3px; }
+.bubble.human { align-self: flex-end; background: #e9edf2; color: var(--navy-dark); border-bottom-right-radius: 3px; }
+.bubble.system { align-self: center; background: transparent; color: #6b7683; font-size: 12px; font-style: italic; }
+.bubble .meta { display: block; font-size: 11px; opacity: 0.7; margin-top: 4px; }
+.confirm-row { display: flex; gap: 8px; align-self: flex-end; }
+.btn {
+  border: none; border-radius: 8px; padding: 8px 14px; font-weight: 700; font-size: 13px;
+  cursor: default; font-family: var(--font);
+}
+.btn.primary { background: var(--gold); color: var(--navy-dark); }
+.btn.ghost { background: #e9edf2; color: var(--navy-2); }
+
+/* Ops console */
+.ops { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 16px; }
+
+.card { border: 1px solid #e6e9ee; border-radius: 10px; padding: 14px; }
+.card .title { font-weight: 700; color: var(--navy); margin-bottom: 8px; }
+.kv { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; font-size: 13px; }
+.kv .k { color: #6b7683; }
+.badge { display: inline-block; padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 700; }
+.badge.ok { background: rgba(46, 125, 91, 0.12); color: var(--ok); }
+.badge.warn { background: rgba(180, 121, 31, 0.14); color: var(--warn); }
+.badge.danger { background: rgba(168, 50, 50, 0.12); color: var(--danger); }
+
+/* State ribbon */
+.ribbon { display: flex; flex-wrap: wrap; gap: 6px; }
+.step {
+  font-size: 11px; padding: 5px 9px; border-radius: 6px; background: #eef1f5; color: #90a; color: #6b7683;
+  border: 1px solid #e6e9ee; white-space: nowrap;
+}
+.step.done { background: var(--navy-3); color: #fff; border-color: var(--navy-3); }
+.step.current { background: var(--gold); color: var(--navy-dark); border-color: var(--gold); font-weight: 700; }
+.step.blocked { background: rgba(180, 121, 31, 0.16); color: var(--warn); border-color: var(--warn); font-weight: 700; }
+.step.rejected { background: rgba(168, 50, 50, 0.14); color: var(--danger); border-color: var(--danger); font-weight: 700; }
+
+/* Audit list */
+.audit { display: flex; flex-direction: column; gap: 6px; }
+.event { border-left: 3px solid var(--navy-3); padding: 6px 10px; background: #fafbfc; border-radius: 0 6px 6px 0; }
+.event .head { display: flex; justify-content: space-between; font-size: 13px; }
+.event .transition { font-weight: 700; color: var(--navy-2); }
+.event .actor { font-size: 11px; color: #6b7683; }
+.event .codes { color: var(--warn); font-size: 12px; }
+.event .hash { font-family: ui-monospace, "Cascadia Code", monospace; font-size: 10px; color: #9aa4b0; word-break: break-all; }
+
+.empty { color: #6b7683; font-size: 14px; padding: 20px; text-align: center; }

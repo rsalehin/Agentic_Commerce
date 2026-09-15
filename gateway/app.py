@@ -13,6 +13,7 @@ from typing import Any
 
 from dotenv import load_dotenv
 from fastapi import FastAPI, Request
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, StreamingResponse
 
 from gateway.card import provider_jwks, signed_card
@@ -20,10 +21,17 @@ from gateway.service import GatewayService
 
 SERVICE = "gateway"
 DEFAULT_PORT = 8080
+UI_ORIGINS = ["http://localhost:5174", "http://127.0.0.1:5174"]
 
 
 def create_app(service: GatewayService | None = None) -> FastAPI:
     app = FastAPI(title="Fonds AG Agent Gateway (Mock)")
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=UI_ORIGINS,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
     service = service or GatewayService()
 
     @app.get("/health")
