@@ -19,6 +19,10 @@ class InProcessGatewayClient:
     def __init__(self, service: Any) -> None:
         self._service = service
 
+    @property
+    def service(self) -> Any:
+        return self._service
+
     def call(self, tool: str, payload: dict[str, Any]) -> dict[str, Any]:
         return self._service.handle(tool, payload)
 

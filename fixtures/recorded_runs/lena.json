@@ -1,0 +1,24 @@
+{
+  "_comment": "Recorded Kundenagent transcript for persona lena (P1-10/P1-13). Replayed with agent/replay through the real gateway WITHOUT any LLM call: the turns below are the model's tool-call decisions; crypto artifacts (mandate, PID presentation, holder signatures) are regenerated live during replay.",
+  "persona": "lena",
+  "intent_de": "Eröffne mir ein Depot bei der Fonds AG für einen ETF-Sparplan, maximal 200 Euro im Monat, keine Derivate.",
+  "expected_final_state": "DEPOT_OPENED",
+  "ask_human_default": { "approved": true, "answer": "ja" },
+  "turns": [
+    { "tool": "discovery.verify", "input": { "url": "http://localhost:8080" } },
+    { "tool": "ask_human", "input": { "purpose": "mandate", "question_de": "Möchten Sie der Fonds AG das Mandat für die Depoteröffnung erteilen (ETF/Fonds, max. 200 €/Monat, keine Beratung)?" } },
+    { "tool": "wallet.create_mandate", "input": { "scope": { "product_classes": ["fonds", "etf"], "monthly_amount_max": 200, "one_off_amount_max": 0, "advice_allowed": false } } },
+    { "tool": "onboarding.start", "input": {} },
+    { "tool": "wallet.present_pid", "input": { "requested_claims": ["given_name", "family_name", "birth_date", "nationalities", "address", "birth_place_country", "assurance_level"] } },
+    { "tool": "onboarding.identify", "input": { "reference_account_iban": "DE89370400440532013000" } },
+    { "tool": "ask_human", "input": { "purpose": "tax", "question_de": "Bitte bestätigen Sie Ihre steuerliche Selbstauskunft (Steuer-ID, Ansässigkeit DE, kein US-Bezug)." } },
+    { "tool": "wallet.sign_tax", "input": { "declaration": { "tax_id": "12345678901", "residencies": [{ "country": "DE", "tin": "12345678901" }], "us_person": false, "church_tax_query_consent": true, "freistellungsauftrag_eur": 1000 } } },
+    { "tool": "onboarding.tax_declaration", "input": { "declaration": { "tax_id": "12345678901", "residencies": [{ "country": "DE", "tin": "12345678901" }], "us_person": false, "church_tax_query_consent": true, "freistellungsauftrag_eur": 1000 } } },
+    { "tool": "onboarding.appropriateness", "input": { "profile": { "experience": { "fonds": { "years": 2, "trades_per_year": 12 }, "etf": { "years": 2, "trades_per_year": 12 }, "aktien": { "years": 0, "trades_per_year": 0 }, "zertifikate": { "years": 0, "trades_per_year": 0 }, "derivate": { "years": 0, "trades_per_year": 0 } }, "education": "Abitur", "occupation": "Angestellte", "requested_classes": ["fonds", "etf"], "advice_requested": false } } },
+    { "tool": "onboarding.get_documents", "input": { "plan": { "monthly_amount": { "value": 150, "currency": "EUR" }, "product_isin": "DE000MOCK0001" } } },
+    { "tool": "ask_human", "input": { "purpose": "contract", "question_de": "Möchten Sie den Depotvertrag auf Basis der angezeigten Unterlagen signieren?" } },
+    { "tool": "wallet.sign_contract", "input": {} },
+    { "tool": "onboarding.sign_contract", "input": { "idempotency_key": "lena-open-1" } },
+    { "tool": "onboarding.status", "input": {} }
+  ]
+}
