@@ -127,7 +127,7 @@ The gateway recomputes the current `snapshot_digest`; a mismatch → `SNAPSHOT_S
 in: `{ "session_id", "operation_id" }` — out: `data: { "state", "depot": {…}|null }`. Resolves `RECONCILING` without a second create.
 
 ### `onboarding.status`
-in: `{ "session_id" }` — out: `data: { "state", "blocked_from", "reason_codes" (masked for AML), "service_mode", "escalation": {…}|null, "audit_chain_ok": true }`.
+in: `{ "session_id" }` — out: `data: { "state", "blocked_from", "reason_codes" (masked for AML), "service_mode", "escalation": {…}|null, "next_tool": "onboarding.…"|null, "audit_chain_ok": true }`. `next_tool` is the structured next-step the agent should call (the blocked tool while `CUSTOMER_REQUIRED`; `null` while `REVIEW_REQUIRED` — wait for staff — or when terminal).
 
 **Lifecycle terminals.** A customer may `cancel` before `CUSTOMER_CONFIRMED` → `CANCELLED`; a mandate/session deadline → `EXPIRED`; an adviser `request_appointment` → `ADVISED_HANDOFF`; an adviser/compliance `reject` → `REVIEW_REJECTED` → `REJECTED` (see `docs/03`).
 
@@ -148,4 +148,4 @@ Envelope error codes: `WRONG_STATE`, `MANDATE_INVALID`, `MANDATE_EXPIRED`, `MAND
 
 ## 6. Ops/adviser HTTP API (Phase 2)
 
-`GET /escalations` (two queues: `customer` vs `review`; `review` split adviser/compliance), `GET /escalations/{id}`, `POST /escalations/{id}/decision {"decision":"approve|request_appointment|reject","note":"…","actor":"adviser|compliance"}`, `GET /sessions/{id}`, `GET /sessions/{id}/evidence`, `GET /events` (SSE).
+`GET /escalations` (two queues: `customer` vs `review`; `review` split adviser/compliance), `GET /escalations/{id}`, `POST /escalations/{id}/decision {"decision":"approve|request_appointment|reject","note":"…","actor":"adviser|compliance"}` → `{ok, escalation, state, next_tool, message_de}` (approve resumes at `blocked_from` and returns the blocked tool as `next_tool`; request_appointment → `ADVISED_HANDOFF`; reject → `REVIEW_REJECTED` → `REJECTED`). `GET /sessions/{id}`, `GET /sessions/{id}/evidence`, `GET /events` (SSE).

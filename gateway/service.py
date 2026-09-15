@@ -55,6 +55,17 @@ def _sha256(data: bytes) -> str:
     return f"sha256:{hashlib.sha256(data).hexdigest()}"
 
 
+# The tool expected next from a given (pre-step) state — the structured next-step
+# handed back to the agent after a resume (P2-02).
+NEXT_TOOL: dict[str, str] = {
+    "MANDATE_VALID": "onboarding.identify",
+    "SCREENED": "onboarding.tax_declaration",
+    "TAX_CONFIRMED": "onboarding.appropriateness",
+    "APPROPRIATENESS_DONE": "onboarding.get_documents",
+    "INFORMED": "onboarding.sign_contract",
+}
+
+
 def canonical_htu(provider_domain: str, tool: str, session_id: str) -> str:
     """The canonical `htu` bound by x-sender-proof (agent and gateway must agree).
 
@@ -269,13 +280,15 @@ class GatewayService:
                 rules=rules,
                 policy_version=decision.policy_version,
             )
-            self._create_escalation(entry, decision)
+            self._create_escalation(entry, decision, tool)
             return _human(sess.state, decision)
         return None
 
-    # --- escalation queues (P2-01) ---------------------------------------------
+    # --- escalation queues (P2-01/P2-02) ---------------------------------------
 
-    def _create_escalation(self, entry: SessionEntry, decision: PolicyDecision) -> Escalation:
+    def _create_escalation(
+        self, entry: SessionEntry, decision: PolicyDecision, tool: str
+    ) -> Escalation:
         sess = entry.session
         if decision.outcome == "REQUIRE_CUSTOMER":
             queue, role = "customer", "customer"
@@ -290,12 +303,24 @@ class GatewayService:
             actor_role=role,
             reasons=list(decision.reason_codes),
             blocked_from=sess.blocked_from,
+            blocked_tool=tool,
             created_at=datetime.now(UTC).isoformat(),
             confidential=decision.confidential,
             evidence_hashes=evidence,
         )
         self.escalations[esc.id] = esc
         return esc
+
+    def _next_tool_for(self, sess: Session) -> str | None:
+        if sess.state == "CUSTOMER_REQUIRED" and sess.blocked_from:
+            return NEXT_TOOL.get(sess.blocked_from)
+        return NEXT_TOOL.get(sess.state)
+
+    def _open_escalation(self, session_id: str) -> dict[str, Any] | None:
+        for esc in self.escalations.values():
+            if esc.session_id == session_id and esc.status == "open":
+                return esc.to_dict()
+        return None
 
     def list_escalations(self, queue: str | None = None) -> list[dict[str, Any]]:
         items = list(self.escalations.values())
@@ -343,7 +368,21 @@ class GatewayService:
         esc.decided_by = actor
         if decision == "approve":
             entry.reason_codes = []
-        return {"ok": True, "escalation": esc.to_dict(), "state": sess.state}
+            next_tool = self._next_tool_for(sess)
+            message = "Freigabe erteilt. Bitte wiederholen Sie den Schritt."
+        elif decision == "request_appointment":
+            next_tool = None
+            message = "Ein Termin mit Ihrer Partnerbank-Beraterin wurde vereinbart."
+        else:  # reject
+            next_tool = None
+            message = "Der Antrag wurde nach Prüfung abgelehnt."
+        return {
+            "ok": True,
+            "escalation": esc.to_dict(),
+            "state": sess.state,
+            "next_tool": next_tool,
+            "message_de": message,
+        }
 
     def _consume_sender(self, ctx: dict[str, Any]) -> None:
         jti = ctx.get("sender_proof_jti")
@@ -762,7 +801,8 @@ class GatewayService:
                 "blocked_from": sess.blocked_from,
                 "reason_codes": entry.reason_codes,
                 "service_mode": entry.service_mode,
-                "escalation": None,
+                "escalation": self._open_escalation(sess.session_id),
+                "next_tool": self._next_tool_for(sess),
                 "audit_chain_ok": sess.audit_chain_ok(),
             },
         )

@@ -19,6 +19,7 @@ class Escalation:
     actor_role: str  # customer | adviser | compliance
     reasons: list[str]  # real reason codes (Ops/compliance may see them, GwG §47)
     blocked_from: str | None
+    blocked_tool: str | None
     created_at: str
     confidential: bool = False
     status: str = "open"  # open | approved | appointment | rejected
@@ -34,6 +35,7 @@ class Escalation:
             "actor_role": self.actor_role,
             "reasons": self.reasons,
             "blocked_from": self.blocked_from,
+            "blocked_tool": self.blocked_tool,
             "created_at": self.created_at,
             "confidential": self.confidential,
             "status": self.status,
