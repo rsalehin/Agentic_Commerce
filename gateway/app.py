@@ -74,7 +74,10 @@ def create_app(service: GatewayService | None = None) -> FastAPI:
 
     @app.post("/v1/onboarding/{sid}/confirm")
     def confirm(sid: str, body: dict[str, Any]) -> JSONResponse:
-        return JSONResponse(service.handle("onboarding.sign_contract", {**body, "session_id": sid}))
+        result = service.handle("onboarding.sign_contract", {**body, "session_id": sid})
+        code = (result.get("error") or {}).get("code")
+        status = 409 if code == "CONFLICT" else 200
+        return JSONResponse(result, status_code=status)
 
     @app.get("/v1/onboarding/{sid}")
     def status(sid: str) -> JSONResponse:

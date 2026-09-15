@@ -94,6 +94,8 @@ class SessionEntry:
     service_mode: str | None = None
     snapshot: dict[str, Any] | None = None
     reason_codes: list[str] = field(default_factory=list)
+    confirm_key: str | None = None
+    confirm_result: dict[str, Any] | None = None
 
 
 class GatewayService:
@@ -125,11 +127,16 @@ class GatewayService:
         self.sessions: dict[str, SessionEntry] = {}
         self.used_sender_jtis: set[str] = set()
         self._products = {p["isin"]: p for p in provider_fixture()["products"]}
+        self._pricing_override: dict[str, str] = {}  # demo: simulate a price change
         # Ops-console feed: serialized audit events across all sessions (P1-11).
         self.event_log: list[dict[str, Any]] = []
         self._published: dict[str, int] = {}
         # Escalation queues (P2-01).
         self.escalations: dict[str, Escalation] = {}
+
+    def set_pricing_version(self, isin: str, pricing_version: str) -> None:
+        """Demo hook: change a product's live pricing (drives SNAPSHOT_STALE, P3-01)."""
+        self._pricing_override[isin] = pricing_version
 
     # --- dispatch --------------------------------------------------------------
 
@@ -535,6 +542,7 @@ class GatewayService:
             return err
         assert entry is not None
         sess = entry.session
+        self._maybe_resume_customer(entry, MANDATE_VALID)
         if sess.state != MANDATE_VALID:
             return _err("WRONG_STATE", detail=f"identify not allowed in {sess.state}")
 
@@ -613,6 +621,7 @@ class GatewayService:
             return err
         assert entry is not None
         sess = entry.session
+        self._maybe_resume_customer(entry, SCREENED)
         if sess.state != SCREENED:
             return _err("WRONG_STATE", detail=f"tax not allowed in {sess.state}")
 
@@ -666,6 +675,7 @@ class GatewayService:
             return err
         assert entry is not None
         sess = entry.session
+        self._maybe_resume_customer(entry, TAX_CONFIRMED)
         if sess.state != TAX_CONFIRMED:
             return _err("WRONG_STATE", detail=f"appropriateness not allowed in {sess.state}")
 
@@ -747,39 +757,21 @@ class GatewayService:
             return non_allow
 
         self._consume_sender(ctx)
-        assert product is not None
-        pricing_version = product["default_pricing_version"]
-        doc_types = [
-            "agb",
-            "basisinformationen",
-            "kosteninformation_ex_ante",
-            "basisinformationsblatt",
-            "widerrufsbelehrung",
-            "datenschutz",
-        ]
-        documents = [{"type": t, "hash": _sha256(f"{isin}:{t}".encode())} for t in doc_types]
-        snapshot_core = {
-            "session_id": sess.session_id,
-            "revision": sess.revision,
-            "product_id": isin,
-            "product_version": product["product_version"],
-            "pricing_version": pricing_version,
-            "document_hashes": [d["hash"] for d in documents],
-            "plan": {"monthly_amount": monthly, "product_isin": isin},
-        }
-        digest = _sha256(jcs_canonicalize(snapshot_core))
-        entry.snapshot = {"digest": digest, **snapshot_core}
+        core, digest, documents, pricing_version = self._snapshot_for(
+            sess.session_id, {"monthly_amount": monthly, "product_isin": isin}, sess.revision
+        )
+        entry.snapshot = {"digest": digest, "plan": core["plan"]}
         sess.advance(
             INFORMED,
             tool="onboarding.get_documents",
             rules=self._rules_json(decision),
             policy_version=decision.policy_version,
-            evidence=snapshot_core,
+            evidence=core,
         )
         data = {
             "bundle_id": f"bnd_{sess.session_id}",
             "revision": sess.revision,
-            "product_version": product["product_version"],
+            "product_version": core["product_version"],
             "pricing_version": pricing_version,
             "snapshot_digest": digest,
             "documents": documents,
@@ -787,16 +779,71 @@ class GatewayService:
         }
         return _ok(sess.state, data, decision, next_tool="onboarding.sign_contract")
 
+    def _snapshot_for(
+        self, session_id: str, plan: dict[str, Any], revision: int
+    ) -> tuple[dict[str, Any], str, list[dict[str, str]], str]:
+        """Build the immutable snapshot for a plan at the CURRENT pricing."""
+        isin = plan["product_isin"]
+        product = self._products[isin]
+        pricing_version = self._pricing_override.get(isin, product["default_pricing_version"])
+        doc_types = [
+            "agb", "basisinformationen", "kosteninformation_ex_ante",
+            "basisinformationsblatt", "widerrufsbelehrung", "datenschutz",
+        ]
+        documents = [
+            {"type": t, "hash": _sha256(f"{isin}:{t}:{pricing_version}".encode())}
+            for t in doc_types
+        ]
+        core = {
+            "session_id": session_id,
+            "revision": revision,
+            "product_id": isin,
+            "product_version": product["product_version"],
+            "pricing_version": pricing_version,
+            "document_hashes": [d["hash"] for d in documents],
+            "plan": {"monthly_amount": plan["monthly_amount"], "product_isin": isin},
+        }
+        return core, _sha256(jcs_canonicalize(core)), documents, pricing_version
+
+    def _maybe_resume_customer(self, entry: SessionEntry, precond: str) -> None:
+        """A CUSTOMER_REQUIRED step is resolved by the agent re-submitting the tool:
+        auto-resume to blocked_from so the re-run proceeds (P1-00 §1.1)."""
+        sess = entry.session
+        if sess.state == "CUSTOMER_REQUIRED" and sess.blocked_from == precond:
+            sess.resume(actor="agent")
+            entry.reason_codes = []
+            for esc in self.escalations.values():
+                if (
+                    esc.session_id == sess.session_id
+                    and esc.queue == "customer"
+                    and esc.status == "open"
+                ):
+                    esc.status = "resolved"
+
     def sign_contract(self, payload: dict[str, Any]) -> dict[str, Any]:
         entry, err = self._require_session(payload)
         if err:
             return err
         assert entry is not None
         sess = entry.session
+
+        # Idempotent confirm: an identical replay returns the stored result; a
+        # different idempotency_key after confirmation is a conflict (docs/05 §2.3).
+        key = payload.get("idempotency_key")
+        if entry.confirm_result is not None:
+            if key is not None and key == entry.confirm_key:
+                return entry.confirm_result
+            return _err("CONFLICT", detail="different idempotency_key after confirmation")
+
+        self._maybe_resume_customer(entry, INFORMED)
         if sess.state != INFORMED:
             return _err("WRONG_STATE", detail=f"sign_contract not allowed in {sess.state}")
         assert entry.snapshot is not None
 
+        # Recompute the CURRENT snapshot (captures a price change since get_documents).
+        _core, current_digest, _docs, pricing_version = self._snapshot_for(
+            sess.session_id, entry.snapshot["plan"], sess.revision
+        )
         signed_digest = payload.get("snapshot_digest", "")
         holder_ok = self._verify_holder_signature(
             entry,
@@ -814,12 +861,19 @@ class GatewayService:
             {
                 "holder_signature_valid": holder_ok,
                 "signed_snapshot_digest": signed_digest,
-                "current_snapshot_digest": entry.snapshot["digest"],
+                "current_snapshot_digest": current_digest,
             }
         )
         decision = self.engine.evaluate("sign_contract", ctx)
         non_allow = self._apply_non_allow(entry, "onboarding.sign_contract", decision)
         if non_allow is not None:
+            if "SNAPSHOT_STALE" in decision.reason_codes:
+                # Issue a fresh bundle at the new price for the customer to re-confirm.
+                entry.snapshot = {"digest": current_digest, "plan": entry.snapshot["plan"]}
+                non_allow["data"] = {
+                    "snapshot_digest": current_digest,
+                    "pricing_version": pricing_version,
+                }
             return non_allow
 
         self._consume_sender(ctx)
@@ -836,12 +890,14 @@ class GatewayService:
         opening = self.core.create_depot(operation_id=operation_id, application_id=sess.session_id)
         if opening.state == STATE_UNCERTAIN or opening.depot is None:
             sess.advance(RECONCILING, actor="core")
-            return _ok(
+            result = _ok(
                 sess.state,
                 {"operation_id": operation_id},
                 decision,
                 next_tool="onboarding.get_opening_status",
             )
+            entry.confirm_key, entry.confirm_result = key, result
+            return result
         depot = opening.depot
         sess.advance(DEPOT_OPENED, actor="core", evidence={"operation_id": operation_id})
         data = {
@@ -854,7 +910,9 @@ class GatewayService:
             "operation_id": operation_id,
             "withdrawal_deadline": "2026-09-29",
         }
-        return _ok(sess.state, data, decision)
+        result = _ok(sess.state, data, decision)
+        entry.confirm_key, entry.confirm_result = key, result
+        return result
 
     def status(self, payload: dict[str, Any]) -> dict[str, Any]:
         entry, err = self._require_session(payload)
