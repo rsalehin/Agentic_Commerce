@@ -53,6 +53,17 @@ def _sha256(data: bytes) -> str:
     return f"sha256:{hashlib.sha256(data).hexdigest()}"
 
 
+def canonical_htu(provider_domain: str, tool: str, session_id: str) -> str:
+    """The canonical `htu` bound by x-sender-proof (agent and gateway must agree).
+
+    Uses the tool's action name (e.g. `sign_contract`), independent of the REST
+    path spelling (e.g. `/confirm`)."""
+    if tool == "onboarding.start":
+        return f"{provider_domain}/v1/onboarding/start"
+    action = tool.split(".", 1)[1]
+    return f"{provider_domain}/v1/onboarding/{session_id}/{action}"
+
+
 @dataclass
 class SessionEntry:
     session: Session
@@ -162,10 +173,7 @@ class GatewayService:
         return int(self._clock()) if self._clock else int(time.time())
 
     def htu(self, tool: str, session_id: str) -> str:
-        action = tool.split(".", 1)[1]
-        if tool == "onboarding.start":
-            return f"{self.provider_domain}/v1/onboarding/start"
-        return f"{self.provider_domain}/v1/onboarding/{session_id}/{action}"
+        return canonical_htu(self.provider_domain, tool, session_id)
 
     def _mandate_ctx(self, mandate: Mandate) -> dict[str, Any]:
         return {

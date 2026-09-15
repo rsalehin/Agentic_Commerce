@@ -15,7 +15,8 @@ from pathlib import Path
 from typing import Any
 
 from agent.discovery import verify_card_against_directory
-from agent.gateway_client import InProcessGatewayClient
+from agent.gateway_client import GatewayClient, InProcessGatewayClient
+from agent.http_gateway_client import HttpGatewayClient
 from agent.llm import ScriptedProvider
 from agent.orchestrator import Orchestrator, RunResult, WalletContext
 from core.db import make_engine
@@ -59,10 +60,8 @@ def _persona(persona_id: str) -> dict[str, Any]:
     return next(p for p in personas_file()["personas"] if p["id"] == persona_id)
 
 
-def build_local_harness(
-    persona_id: str,
-) -> tuple[InProcessGatewayClient, WalletContext, Callable[[str], Any]]:
-    """Assemble the in-process demo (service + wallet context + offline discovery)."""
+def build_service() -> GatewayService:
+    """A gateway service wired to the mock wallet/core with the current keys."""
     registry = ensure_keys()
     instance = registry.services[INSTANCE_KID]
     clients = ClientRegistry(
@@ -74,13 +73,18 @@ def build_local_harness(
             }
         ]
     )
-    service = GatewayService(
+    return GatewayService(
         client_registry=clients,
         identity_verifier=WalletSdJwtVerifier(issuer_jwks()),
         core=DepotbankCore(make_engine()),
     )
+
+
+def build_wallet(persona_id: str) -> WalletContext:
+    registry = ensure_keys()
     holder = registry.holders[persona_id]
-    wallet = WalletContext(
+    instance = registry.services[INSTANCE_KID]
+    return WalletContext(
         holder_key=holder.private,
         holder_kid=f"holder-{persona_id}",
         holder_did=holder.did,
@@ -92,15 +96,32 @@ def build_local_harness(
         card_fingerprint=provider_fingerprint(),
         persona=_persona(persona_id),
     )
-    # Offline discovery: verify the gateway's own signed card via the directory.
-    discover = lambda _url: verify_card_against_directory(signed_card())  # noqa: E731
-    return InProcessGatewayClient(service), wallet, discover
+
+
+def offline_discover() -> Callable[[str], Any]:
+    """Verify the gateway's own signed card via the directory (no network)."""
+    return lambda _url: verify_card_against_directory(signed_card())
+
+
+def build_local_harness(
+    persona_id: str,
+) -> tuple[InProcessGatewayClient, WalletContext, Callable[[str], Any]]:
+    """Assemble the in-process demo (service + wallet context + offline discovery)."""
+    return InProcessGatewayClient(build_service()), build_wallet(persona_id), offline_discover()
+
+
+def build_http_harness(
+    persona_id: str, http: Any, *, provider_domain: str = PROVIDER_DOMAIN
+) -> tuple[HttpGatewayClient, WalletContext, Callable[[str], Any]]:
+    """Assemble a harness that drives a *running* gateway over HTTP (`http` is an
+    httpx.Client / FastAPI TestClient bound to that server)."""
+    return HttpGatewayClient(http, provider_domain), build_wallet(persona_id), offline_discover()
 
 
 def replay(
     run: RecordedRun,
     *,
-    gateway: InProcessGatewayClient,
+    gateway: GatewayClient,
     wallet: WalletContext,
     discover: Callable[[str], Any],
     now: Callable[[], int] | None = None,
