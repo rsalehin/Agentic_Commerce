@@ -1,6 +1,6 @@
 # ADR-05: Enforcement of human-only steps
 
-**Status:** proposed · **Date:** 2026-09-14 · **Deciders:** Abir (author), reviewed with Claude Code
+**Status:** accepted · **Date:** 2026-09-14 (impl. P1-08/P1-09) · **Deciders:** Abir (author), reviewed with Claude Code
 
 ## Entscheidung (what had to be decided)
 How do we guarantee the agent cannot fabricate the customer's declarations?

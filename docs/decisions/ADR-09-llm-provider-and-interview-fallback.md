@@ -1,6 +1,6 @@
 # ADR-09: LLM provider and interview fallback
 
-**Status:** proposed · **Date:** 2026-09-14 · **Deciders:** Abir (author), reviewed with Claude Code
+**Status:** accepted · **Date:** 2026-09-14 (impl. P1-09) · **Deciders:** Abir (author), reviewed with Claude Code
 
 ## Entscheidung (what had to be decided)
 Which model drives the Kundenagent and what if it fails live?
