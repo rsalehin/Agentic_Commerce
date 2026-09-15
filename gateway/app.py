@@ -6,19 +6,22 @@ FastMCP tools, rules engine and state machine are added in Phase 1.
 from __future__ import annotations
 
 import os
+from typing import Any
 
 from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse
 
 from gateway.card import provider_jwks, signed_card
+from gateway.service import GatewayService
 
 SERVICE = "gateway"
 DEFAULT_PORT = 8080
 
 
-def create_app() -> FastAPI:
+def create_app(service: GatewayService | None = None) -> FastAPI:
     app = FastAPI(title="Fonds AG Agent Gateway (Mock)")
+    service = service or GatewayService()
 
     @app.get("/health")
     def health() -> dict[str, str]:
@@ -31,6 +34,40 @@ def create_app() -> FastAPI:
     @app.get("/.well-known/jwks.json")
     def jwks() -> JSONResponse:
         return JSONResponse(provider_jwks())
+
+    # --- canonical REST surface (docs/05 §0); MCP mirrors these handlers -------
+
+    @app.post("/v1/onboarding/start")
+    def start(body: dict[str, Any]) -> JSONResponse:
+        return JSONResponse(service.handle("onboarding.start", body))
+
+    @app.post("/v1/onboarding/{sid}/identify")
+    def identify(sid: str, body: dict[str, Any]) -> JSONResponse:
+        return JSONResponse(service.handle("onboarding.identify", {**body, "session_id": sid}))
+
+    @app.post("/v1/onboarding/{sid}/tax")
+    def tax(sid: str, body: dict[str, Any]) -> JSONResponse:
+        return JSONResponse(
+            service.handle("onboarding.tax_declaration", {**body, "session_id": sid})
+        )
+
+    @app.post("/v1/onboarding/{sid}/appropriateness")
+    def appropriateness(sid: str, body: dict[str, Any]) -> JSONResponse:
+        return JSONResponse(
+            service.handle("onboarding.appropriateness", {**body, "session_id": sid})
+        )
+
+    @app.post("/v1/onboarding/{sid}/documents")
+    def documents(sid: str, body: dict[str, Any]) -> JSONResponse:
+        return JSONResponse(service.handle("onboarding.get_documents", {**body, "session_id": sid}))
+
+    @app.post("/v1/onboarding/{sid}/confirm")
+    def confirm(sid: str, body: dict[str, Any]) -> JSONResponse:
+        return JSONResponse(service.handle("onboarding.sign_contract", {**body, "session_id": sid}))
+
+    @app.get("/v1/onboarding/{sid}")
+    def status(sid: str) -> JSONResponse:
+        return JSONResponse(service.handle("onboarding.status", {"session_id": sid}))
 
     return app
 
