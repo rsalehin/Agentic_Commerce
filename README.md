@@ -6,8 +6,10 @@ verified provider identity, a signed user mandate, wallet-based identification
 (SD-JWT VC), a law-citing rules engine, a hash-chained audit trail, and a
 human-in-the-loop escalation path — shown in a split-screen UI.
 
-Two scenarios run live and offline: **lena → `DEPOT_OPENED`** (happy path) and
-**marco → `ADVISED_HANDOFF`** (two adviser escalations).
+Three scenarios run live and offline: **lena → `DEPOT_OPENED`** (happy path),
+**marco → `ADVISED_HANDOFF`** (two adviser escalations) and
+**sanction_test → `REJECTED`** (a confidential § 47 sanctions case — compliance
+rejects; the customer/agent only sees `IN_REVIEW`).
 
 ---
 
@@ -71,10 +73,10 @@ Best for a quick look or an interview with no network.
 cd ui
 npm run dev
 ```
-Open **http://localhost:5174** and use the header toggle **Replay: Lena** or
-**Replay: Marco**. These render bundled recordings (`ui/src/replay/*.json`) with
-no backend at all — chat on the left, Ops-Konsole (state ribbon, hash-chained
-audit, adviser panel) on the right.
+Open **http://localhost:5174** and use the header toggle **Replay: Lena**,
+**Replay: Marco** or **Replay: Sanktion**. These render bundled recordings
+(`ui/src/replay/*.json`) with no backend at all — chat on the left, Ops-Konsole
+(state ribbon, hash-chained audit, adviser panel) on the right.
 
 ### B) Live demo with recorded data (recommended)
 Serve a gateway pre-populated with a recorded run, then watch it in the UI.
@@ -103,10 +105,15 @@ port is busy it prints the exact `taskkill` command instead of failing silently.
 Then, in another terminal, drive a scenario (no LLM call — the agent's tool-call
 decisions are replayed; crypto and the audit are real):
 ```powershell
-uv run python -m agent.replay lena  http://localhost:8080
-uv run python -m agent.replay marco http://localhost:8080
+uv run python -m agent.replay lena          http://localhost:8080
+uv run python -m agent.replay marco         http://localhost:8080
+uv run python -m agent.replay sanction_test http://localhost:8080
 ```
-Watch **http://localhost:5174** (Live) populate as the events stream in.
+Watch **http://localhost:5174** (Live) populate as the events stream in. The
+three scenarios end in **`DEPOT_OPENED`** (lena), **`ADVISED_HANDOFF`** (marco)
+and **`REJECTED`** (sanction_test — a confidential § 47 sanctions case: the
+customer/agent only ever sees "Ihr Antrag wird geprüft." / `IN_REVIEW`, while
+compliance rejects it in the Ops-Konsole).
 
 > The demo is driven by the recorded replay so it is deterministic and
 > network-independent. A real-LLM run would use the Anthropic provider
@@ -134,7 +141,7 @@ curl http://localhost:8080/.well-known/agent-card.json
 
 ## 5. Tests & checks (the definition of done)
 ```powershell
-uv run pytest            # 140 tests
+uv run pytest            # 144 tests
 uv run ruff check .
 uv run mypy gateway
 cd ui; npm run build     # type-checks (tsc) + bundles the UI
