@@ -1,0 +1,18 @@
+{
+  "_comment": "Recorded Kundenagent transcript for persona sanction_test (P3-06). Confidential AML case: onboarding.identify triggers a sanctions match -> REVIEW_REQUIRED. The agent/customer only ever sees the masked IN_REVIEW envelope (GwG §47); the real AML_SANCTIONS_HIT lives only in the audit log and the compliance queue. The single recorded review is a compliance decision 'reject' -> REVIEW_REJECTED -> REJECTED. Turns stop after identify because the escalation drives the remainder (on_review applies the compliance decision, then the run reads the resolved REJECTED status and ends). Crypto is regenerated live.",
+  "persona": "sanction_test",
+  "intent_de": "Depot eröffnen.",
+  "expected_final_state": "REJECTED",
+  "ask_human_default": { "approved": true, "answer": "ja" },
+  "reviews": [
+    { "decision": "reject", "actor": "compliance" }
+  ],
+  "turns": [
+    { "tool": "discovery.verify", "input": { "url": "http://localhost:8080" } },
+    { "tool": "ask_human", "input": { "purpose": "mandate", "question_de": "Möchten Sie der Fonds AG das Mandat für die Depoteröffnung erteilen (Fonds, max. 50 €/Monat, keine Beratung)?" } },
+    { "tool": "wallet.create_mandate", "input": { "scope": { "product_classes": ["fonds"], "monthly_amount_max": 50, "one_off_amount_max": 0, "advice_allowed": false } } },
+    { "tool": "onboarding.start", "input": {} },
+    { "tool": "wallet.present_pid", "input": { "requested_claims": ["given_name", "family_name", "birth_date", "nationalities", "address", "birth_place_country", "assurance_level"] } },
+    { "tool": "onboarding.identify", "input": { "reference_account_iban": "DE00000000000000000000" } }
+  ]
+}
