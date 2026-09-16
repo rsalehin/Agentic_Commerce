@@ -108,7 +108,13 @@ def create_app(service: GatewayService | None = None) -> FastAPI:
             note=body.get("note"),
             actor=body.get("actor", "adviser"),
         )
-        return JSONResponse(result, status_code=200 if result.get("ok") else 400)
+        if result.get("ok"):
+            status = 200
+        elif result.get("error", {}).get("code") == "FORBIDDEN_ACTOR":
+            status = 403  # confidential §47 case: non-compliance actor refused
+        else:
+            status = 400
+        return JSONResponse(result, status_code=status)
 
     # --- UI feeds (P1-11) ------------------------------------------------------
 

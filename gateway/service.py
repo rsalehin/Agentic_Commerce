@@ -399,9 +399,19 @@ class GatewayService:
         ]
 
     def _open_escalation(self, session_id: str) -> dict[str, Any] | None:
+        """The open escalation embedded in the agent-facing `onboarding.status`.
+
+        For a confidential (`AML_*`) review the real reason codes are masked to
+        `IN_REVIEW` (GwG § 47) — the agent/customer must not learn the match
+        details here; the real codes stay in the audit log and the staff-only
+        `/escalations` feed (`list_escalations`, unmasked).
+        """
         for esc in self.escalations.values():
             if esc.session_id == session_id and esc.status == "open":
-                return esc.to_dict()
+                data = esc.to_dict()
+                if esc.confidential:
+                    data["reasons"] = ["IN_REVIEW"]
+                return data
         return None
 
     def list_escalations(self, queue: str | None = None) -> list[dict[str, Any]]:
@@ -426,6 +436,21 @@ class GatewayService:
         if entry is None:
             return _err("WRONG_STATE", detail="session gone")
         sess = entry.session
+        # A confidential compliance case (GwG §47) may only be decided by
+        # compliance; a non-compliance actor (adviser) is refused. The refusal is
+        # audited like a guard rejection (from_state == to_state == REVIEW_REQUIRED,
+        # actor "adviser", reason_codes ["FORBIDDEN_ACTOR"]) so an adviser trying to
+        # open a §47 case is visible in the trail (docs/05 §6).
+        if esc.confidential and actor != "compliance":
+            sess.guard_reject(
+                tool=esc.blocked_tool, reason_codes=["FORBIDDEN_ACTOR"], actor="adviser"
+            )
+            self._drain_events()
+            return _err(
+                "FORBIDDEN_ACTOR",
+                "Vertraulicher Compliance-Fall (§ 47 GwG): nur die Compliance darf entscheiden.",
+                detail=f"actor {actor!r} may not decide a confidential compliance escalation",
+            )
         try:
             if decision == "approve":
                 if esc.queue == "review":

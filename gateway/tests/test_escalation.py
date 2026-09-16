@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from typing import Any
 
 from gateway.service import GatewayService
@@ -80,9 +81,14 @@ def test_sanctions_creates_confidential_compliance_escalation_and_reject() -> No
             "sender_proof": sender(svc, "onboarding.identify", sid),
         },
     )
-    # The agent only sees IN_REVIEW (GwG §47), never the real match.
+    # (a) The agent only sees IN_REVIEW (GwG §47), never the real match — in the
+    # identify envelope or in onboarding.status.
     assert ident["reason_codes"] == ["IN_REVIEW"]
     assert ident["state"] == "REVIEW_REQUIRED"
+    assert "AML_SANCTIONS_HIT" not in json.dumps(ident)
+    status = svc.handle("onboarding.status", {"session_id": sid})
+    assert status["data"]["reason_codes"] == ["IN_REVIEW"]
+    assert "AML_SANCTIONS_HIT" not in json.dumps(status)
 
     escs = svc.list_escalations(queue="review")
     assert len(escs) == 1
@@ -91,9 +97,65 @@ def test_sanctions_creates_confidential_compliance_escalation_and_reject() -> No
     assert esc["confidential"] is True
     assert esc["reasons"] == ["AML_SANCTIONS_HIT"]  # real code, compliance-only
 
+    # (b) The audit log DOES carry the real code (staff view / Nachweis).
+    events = svc.sessions[sid].session.events
+    assert any("AML_SANCTIONS_HIT" in e.reason_codes for e in events)
+
+    # (c) An adviser may not decide a confidential §47 case: refused with
+    # FORBIDDEN_ACTOR, state unchanged, and audited like a guard rejection.
+    refused = svc.decide_escalation(esc["id"], "reject", actor="adviser")
+    assert refused["ok"] is False
+    assert refused["error"]["code"] == "FORBIDDEN_ACTOR"
+    assert svc.sessions[sid].session.state == "REVIEW_REQUIRED"
+    assert any(
+        e.from_state == e.to_state == "REVIEW_REQUIRED"
+        and e.actor == "adviser"
+        and e.reason_codes == ["FORBIDDEN_ACTOR"]
+        for e in svc.sessions[sid].session.events
+    )
+
+    # Compliance rejects -> REVIEW_REJECTED -> REJECTED, audited as actor compliance.
     result = svc.decide_escalation(esc["id"], "reject", actor="compliance", note="confirmed")
     assert result["ok"] is True
     assert result["state"] == "REJECTED"
+    assert any(
+        e.actor == "compliance" and e.to_state == "REJECTED"
+        for e in svc.sessions[sid].session.events
+    )
+
+
+def test_confidential_decision_rest_returns_403_for_adviser() -> None:
+    from fastapi.testclient import TestClient
+
+    from gateway.app import create_app
+
+    svc = make_service()
+    env = svc.handle("onboarding.start", start_payload("sanction_test", svc))
+    sid = env["data"]["session_id"]
+    nonce = env["data"]["requested_credentials"]["nonce"]
+    svc.handle(
+        "onboarding.identify",
+        {
+            "session_id": sid,
+            "presentation": presentation("sanction_test", nonce),
+            "reference_account_iban": persona("sanction_test")["reference_account"]["iban"],
+            "sender_proof": sender(svc, "onboarding.identify", sid),
+        },
+    )
+    esc = svc.list_escalations(queue="review")[0]
+    client = TestClient(create_app(svc))
+
+    resp = client.post(
+        f"/escalations/{esc['id']}/decision", json={"decision": "reject", "actor": "adviser"}
+    )
+    assert resp.status_code == 403
+    assert resp.json()["error"]["code"] == "FORBIDDEN_ACTOR"
+
+    ok = client.post(
+        f"/escalations/{esc['id']}/decision", json={"decision": "reject", "actor": "compliance"}
+    )
+    assert ok.status_code == 200
+    assert ok.json()["state"] == "REJECTED"
 
 
 def test_customer_queue_and_decision_guards() -> None:
