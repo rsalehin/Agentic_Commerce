@@ -13,8 +13,10 @@ ui/*.tsbuildinfo
 .pytest_cache/
 
 # Interview prep / planning material — kept local, not published (root-anchored
-# so that agent/prompts/ runtime code is NOT affected)
-/docs/
+# so that agent/prompts/ runtime code is NOT affected).
+# Ignore all of docs/ EXCEPT the ADR decision log (docs/decisions/), which is published.
+/docs/*
+!/docs/decisions/
 /CLAUDE.md
 /ROADMAP.md
 /prompts/
