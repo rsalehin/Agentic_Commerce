@@ -9,7 +9,8 @@ $venvPython = Join-Path $root ".venv\Scripts\python.exe"
 $services = @(
     @{ Name = "gateway"; Port = 8080; Module = "gateway.app" },
     @{ Name = "wallet";  Port = 8081; Module = "wallet.app" },
-    @{ Name = "core";    Port = 8082; Module = "core.app" }
+    @{ Name = "core";    Port = 8082; Module = "core.app" },
+    @{ Name = "runner";  Port = 8083; Module = "agent.runner" }
 )
 $uiPort = 5174
 
@@ -18,7 +19,7 @@ Write-Host "----------------------"
 
 # 1. Port check (three backends + the UI dev server).
 $conflict = $false
-foreach ($port in @(8080, 8081, 8082, $uiPort)) {
+foreach ($port in @(8080, 8081, 8082, 8083, $uiPort)) {
     $conn = Get-NetTCPConnection -LocalPort $port -State Listen -ErrorAction SilentlyContinue | Select-Object -First 1
     if ($conn) {
         $owner = $conn.OwningProcess

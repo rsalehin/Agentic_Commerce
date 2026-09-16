@@ -55,6 +55,24 @@ services:
       retries: 5
       start_period: 10s
 
+  runner:
+    <<: *backend
+    command: ["python", "-m", "agent.runner"]
+    environment:
+      HOST: "0.0.0.0"
+      RUNNER_PORT: "8083"
+      GATEWAY_URL: "http://gateway:8080"
+    ports:
+      - "8083:8083"
+    depends_on:
+      - gateway
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8083/health')"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+
   ui:
     image: node:20-alpine
     working_dir: /app
@@ -67,3 +85,4 @@ services:
       - gateway
       - wallet
       - core
+      - runner

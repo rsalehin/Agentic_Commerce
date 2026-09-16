@@ -120,6 +120,25 @@ compliance rejects it in the Ops-Konsole).
 > (`AGENT_LLM_PROVIDER=anthropic`, `ANTHROPIC_API_KEY=…`) via `agent/`, but is not
 > required — and is deliberately not wired into the one-command demo.
 
+### D) Interactive from the UI (P3-07)
+`run.ps1` also starts the **runner** service on `:8083`. In the UI header, pick a
+persona (**Lena · Marco · Sanktion**) and click **Start**: the run appears in the
+Kundenchat and pauses at each human-only step. Click **Signieren** to continue or
+**Ablehnen** to stop.
+
+- **Lena** → Signieren the mandate, tax and contract → **`DEPOT_OPENED`**, "✓ Kette gültig".
+- **Ablehnen at the tax step** → the gateway session is cancelled → **`CANCELLED`**
+  in the state ribbon and the audit trail. (Declining at the *first* prompt is the
+  privacy-correct variant: nothing was ever sent to the provider, so there is no
+  session — the chat says so and no audit trail is created.)
+- **Marco** → Signieren mandate + tax → **`ADVISED_HANDOFF`** (adviser decisions
+  applied); **Sanktion** → **`REJECTED`** (confidential § 47).
+
+The runner replays the recorded tool-call decisions (no LLM); with
+`VITE_ENABLE_LIVE=1` a **Start (LLM)** button drives the same flow via the
+Anthropic provider (needs `ANTHROPIC_API_KEY`). The terminal `agent.replay`
+commands above remain the deterministic fallback — the runner is additive.
+
 ---
 
 ## 4. Run services individually (without run.ps1)
