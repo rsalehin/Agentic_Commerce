@@ -1,7 +1,46 @@
-import type { AgentCard, AuditEvent, Escalation, RuleInfo, SessionSnapshot } from "./types";
+import type { AgentCard, AuditEvent, Escalation, RuleInfo, RunStatus, SessionSnapshot } from "./types";
 
 export const API_BASE =
   (import.meta.env.VITE_GATEWAY_URL as string | undefined) ?? "http://localhost:8080";
+
+export const RUNNER_BASE =
+  (import.meta.env.VITE_RUNNER_URL as string | undefined) ?? "http://localhost:8083";
+
+/** Start an interactive run (P3-07). Returns the run id, or null on failure. */
+export async function startRun(persona: string, mode: "script" | "live"): Promise<string | null> {
+  try {
+    const resp = await fetch(`${RUNNER_BASE}/runs`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ persona, mode }),
+    });
+    if (!resp.ok) return null;
+    return ((await resp.json()) as { run_id: string }).run_id;
+  } catch {
+    return null;
+  }
+}
+
+export async function fetchRun(runId: string): Promise<RunStatus | null> {
+  try {
+    const resp = await fetch(`${RUNNER_BASE}/runs/${runId}`);
+    return resp.ok ? ((await resp.json()) as RunStatus) : null;
+  } catch {
+    return null;
+  }
+}
+
+export async function decidePrompt(
+  runId: string,
+  promptId: string,
+  approved: boolean,
+): Promise<void> {
+  await fetch(`${RUNNER_BASE}/runs/${runId}/prompts/${promptId}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ approved }),
+  });
+}
 
 export async function fetchSession(id: string): Promise<SessionSnapshot | null> {
   const resp = await fetch(`${API_BASE}/sessions/${id}`);

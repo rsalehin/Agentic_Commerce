@@ -15,9 +15,19 @@ interface Props {
   escalations: Escalation[];
   rules: RuleInfo[];
   onDecide: (id: string, decision: Decision) => void;
+  runnerStatusDe?: string | null;
 }
 
-export function OpsConsole({ card, events, snapshot, state, escalations, rules, onDecide }: Props) {
+export function OpsConsole({
+  card,
+  events,
+  snapshot,
+  state,
+  escalations,
+  rules,
+  onDecide,
+  runnerStatusDe = null,
+}: Props) {
   return (
     <div className="pane">
       <h2>Ops-Konsole</h2>
@@ -30,6 +40,12 @@ export function OpsConsole({ card, events, snapshot, state, escalations, rules, 
             <span>{snapshot?.session_id ?? "—"}</span>
             <span className="k">Status</span>
             <span>{state ? (STATE_LABEL_DE[state] ?? state) : "—"}</span>
+            {runnerStatusDe && (
+              <>
+                <span className="k">Ablauf</span>
+                <span>{runnerStatusDe}</span>
+              </>
+            )}
             <span className="k">Service-Modus</span>
             <span>
               {snapshot?.service_mode

@@ -1,4 +1,4 @@
-import type { AuditEvent } from "../types";
+import type { AuditEvent, RunPrompt } from "../types";
 
 interface Bubble {
   key: string;
@@ -6,6 +6,33 @@ interface Bubble {
   text: string;
   confirm?: "Bestätigen" | "Signieren";
 }
+
+export interface RunDecision {
+  purpose: string | null;
+  approved: boolean;
+}
+
+interface Props {
+  events: AuditEvent[];
+  /** Interactive (runner-driven) mode: suppress narrate's synthetic human
+   * bubbles and render live approvals instead. */
+  interactive?: boolean;
+  pendingPrompt?: RunPrompt | null;
+  decisions?: RunDecision[];
+  declined?: boolean;
+  declinedSession?: boolean;
+  onDecide?: (promptId: string, approved: boolean) => void;
+}
+
+const PURPOSE_CONFIRMED_DE: Record<string, string> = {
+  mandate: "Mandat erteilt.",
+  tax: "Selbstauskunft bestätigt.",
+  contract: "Vertrag signiert.",
+};
+
+// Purposes that require a qualified signature (Signieren); anything else is a
+// plain confirmation (Bestätigen).
+const SIGN_PURPOSES = new Set(["mandate", "tax", "contract"]);
 
 // Narrate the audit trail as a German customer conversation (read-only for the
 // deck; the interactive confirm/sign wiring lands with the replay UI in P1-13).
@@ -62,13 +89,50 @@ function narrate(events: AuditEvent[]): Bubble[] {
   return out;
 }
 
-export function ChatPanel({ events }: { events: AuditEvent[] }) {
-  const bubbles = narrate(events);
+export function ChatPanel({
+  events,
+  interactive = false,
+  pendingPrompt = null,
+  decisions = [],
+  declined = false,
+  declinedSession = false,
+  onDecide,
+}: Props) {
+  let bubbles = narrate(events);
+  if (interactive) {
+    // The runner supplies the human approvals live; drop narrate's synthetic
+    // human bubbles and static confirm buttons to avoid duplicates.
+    bubbles = bubbles
+      .filter((b) => b.role !== "human")
+      .map((b) => ({ ...b, confirm: undefined }));
+    decisions.forEach((d, i) => {
+      bubbles.push({
+        key: `dec-${i}`,
+        role: d.approved ? "human" : "system",
+        text: d.approved ? (PURPOSE_CONFIRMED_DE[d.purpose ?? ""] ?? "Bestätigt.") : "Abgelehnt.",
+      });
+    });
+    if (declined) {
+      bubbles.push({
+        key: "declined",
+        role: "system",
+        text: declinedSession
+          ? "Vorgang abgebrochen – Sitzung storniert (CANCELLED)."
+          : "Vorgang abgebrochen – es wurde kein Antrag an den Anbieter gesendet.",
+      });
+    }
+  }
+
+  const signLabel: "Signieren" | "Bestätigen" =
+    pendingPrompt && SIGN_PURPOSES.has(pendingPrompt.purpose ?? "") ? "Signieren" : "Bestätigen";
+
   return (
     <div className="pane">
       <h2>Kundenchat</h2>
       <div className="chat">
-        {bubbles.length === 0 && <div className="empty">Warte auf den Kundenagenten …</div>}
+        {bubbles.length === 0 && !pendingPrompt && (
+          <div className="empty">Warte auf den Kundenagenten …</div>
+        )}
         {bubbles.map((b) => (
           <div key={b.key} style={{ display: "contents" }}>
             <div className={`bubble ${b.role}`}>{b.text}</div>
@@ -80,6 +144,25 @@ export function ChatPanel({ events }: { events: AuditEvent[] }) {
             )}
           </div>
         ))}
+        {interactive && pendingPrompt && (
+          <div style={{ display: "contents" }}>
+            <div className="bubble agent">{pendingPrompt.question_de}</div>
+            <div className="confirm-row">
+              <button
+                className="btn primary"
+                onClick={() => onDecide?.(pendingPrompt.prompt_id, true)}
+              >
+                {signLabel}
+              </button>
+              <button
+                className="btn ghost"
+                onClick={() => onDecide?.(pendingPrompt.prompt_id, false)}
+              >
+                Ablehnen
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

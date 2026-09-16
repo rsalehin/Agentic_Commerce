@@ -44,6 +44,24 @@ export interface RuleInfo {
   message_de: string | null;
 }
 
+export interface RunPrompt {
+  prompt_id: string;
+  purpose: string | null;
+  question_de: string;
+  payload: Record<string, unknown> | null;
+  created_at: number;
+}
+
+export interface RunStatus {
+  run_id: string | null;
+  status: "idle" | "running" | "waiting" | "finished" | "error";
+  session_id: string | null;
+  state: string | null;
+  pending_prompt: RunPrompt | null;
+  declined: boolean;
+  error: string | null;
+}
+
 export interface AgentCard {
   name: string;
   description?: string;
