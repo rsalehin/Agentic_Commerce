@@ -215,9 +215,16 @@ class Orchestrator:
         return {"verified": res.verified, "reason": res.reason, "fingerprint": res.fingerprint}
 
     def _ask_human(self, inp: dict[str, Any]) -> dict[str, Any]:
-        answer = self.ask_human(inp.get("question_de", ""), inp.get("payload"))
-        if answer.get("approved") and inp.get("purpose"):
-            self._approvals.add(str(inp["purpose"]))
+        # Surface `purpose` to the ask_human callback (via the payload) so an
+        # interactive front-end can label the prompt (Signieren vs Bestätigen)
+        # and gate the signature. Existing callbacks ignore the extra key.
+        purpose = inp.get("purpose")
+        payload = dict(inp.get("payload") or {})
+        if purpose:
+            payload.setdefault("purpose", str(purpose))
+        answer = self.ask_human(inp.get("question_de", ""), payload or None)
+        if answer.get("approved") and purpose:
+            self._approvals.add(str(purpose))
         return answer
 
     def _create_mandate(self, inp: dict[str, Any]) -> dict[str, Any]:
