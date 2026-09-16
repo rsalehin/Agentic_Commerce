@@ -79,6 +79,12 @@ def create_app(service: GatewayService | None = None) -> FastAPI:
         status = 409 if code == "CONFLICT" else 200
         return JSONResponse(result, status_code=status)
 
+    @app.post("/v1/onboarding/{sid}/cancel")
+    def cancel(sid: str, body: dict[str, Any]) -> JSONResponse:
+        result = service.handle("onboarding.cancel", {**body, "session_id": sid})
+        status = 200 if result.get("ok") else 400
+        return JSONResponse(result, status_code=status)
+
     @app.get("/v1/onboarding/{sid}")
     def status(sid: str) -> JSONResponse:
         return JSONResponse(service.handle("onboarding.status", {"session_id": sid}))

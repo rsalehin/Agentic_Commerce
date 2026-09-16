@@ -49,3 +49,9 @@ class HttpGatewayClient:
             f"/escalations/{escalation_id}/decision", json={"decision": decision, "actor": actor}
         )
         return resp.json()
+
+    def cancel(self, session_id: str, sender_proof: str) -> dict[str, Any]:
+        resp = self._http.post(
+            f"/v1/onboarding/{session_id}/cancel", json={"sender_proof": sender_proof}
+        )
+        return resp.json()

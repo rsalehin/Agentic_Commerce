@@ -18,6 +18,8 @@ class GatewayClient(Protocol):
 
     def decide(self, escalation_id: str, decision: str, actor: str) -> dict[str, Any]: ...
 
+    def cancel(self, session_id: str, sender_proof: str) -> dict[str, Any]: ...
+
 
 class InProcessGatewayClient:
     def __init__(self, service: Any) -> None:
@@ -42,3 +44,8 @@ class InProcessGatewayClient:
 
     def decide(self, escalation_id: str, decision: str, actor: str) -> dict[str, Any]:
         return self._service.decide_escalation(escalation_id, decision, actor=actor)
+
+    def cancel(self, session_id: str, sender_proof: str) -> dict[str, Any]:
+        return self._service.handle(
+            "onboarding.cancel", {"session_id": session_id, "sender_proof": sender_proof}
+        )

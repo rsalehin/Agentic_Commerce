@@ -19,6 +19,7 @@ TOOLS = [
     "onboarding.appropriateness",
     "onboarding.get_documents",
     "onboarding.sign_contract",
+    "onboarding.cancel",
     "onboarding.status",
 ]
 

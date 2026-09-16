@@ -36,8 +36,10 @@ from gateway.models.mandate import Mandate
 from gateway.ports.identity_verifier import IdentityVerifier
 from gateway.rules.engine import PolicyDecision, RulesEngine
 from gateway.state import (
+    ALLOWED,
     APPROPRIATENESS_DONE,
     BANK_ACCEPTED,
+    CANCELLED,
     CUSTOMER_CONFIRMED,
     DEPOT_OPENED,
     IDENTIFIED,
@@ -160,6 +162,7 @@ class GatewayService:
             "onboarding.appropriateness": self.appropriateness,
             "onboarding.get_documents": self.get_documents,
             "onboarding.sign_contract": self.sign_contract,
+            "onboarding.cancel": self.cancel,
             "onboarding.status": self.status,
         }.get(tool)
         if handler is None:
@@ -950,6 +953,34 @@ class GatewayService:
         result = _ok(sess.state, data, decision)
         entry.confirm_key, entry.confirm_result = key, result
         return result
+
+    def cancel(self, payload: dict[str, Any]) -> dict[str, Any]:
+        """Customer-initiated cancellation (docs/03). Terminal, actor "human";
+        allowed only before CUSTOMER_CONFIRMED (else WRONG_STATE). Same sender-proof
+        and mandate guards as any other state-changing call (P3-07)."""
+        entry, err = self._require_session(payload)
+        if err:
+            return err
+        assert entry is not None
+        sess = entry.session
+        if CANCELLED not in ALLOWED.get(sess.state, set()):
+            return _err(
+                "WRONG_STATE", detail=f"cancel not allowed in {sess.state}", state=sess.state
+            )
+        ctx = self._base_ctx(
+            "onboarding.cancel",
+            sess.session_id,
+            entry.mandate,
+            payload.get("sender_proof"),
+            within_scope=True,
+        )
+        decision = self.engine.evaluate("cancel", ctx)
+        non_allow = self._apply_non_allow(entry, "onboarding.cancel", decision)
+        if non_allow is not None:
+            return non_allow
+        self._consume_sender(ctx)
+        sess.cancel(actor="human")
+        return _ok(sess.state, {"state": sess.state}, decision)
 
     def status(self, payload: dict[str, Any]) -> dict[str, Any]:
         entry, err = self._require_session(payload)
