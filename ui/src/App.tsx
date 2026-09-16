@@ -98,6 +98,7 @@ export default function App() {
           {modeButton("Live", { kind: "live" }, mode.kind === "live")}
           {modeButton("Replay: Lena", { kind: "replay", persona: "lena" }, replaying && mode.persona === "lena")}
           {modeButton("Replay: Marco", { kind: "replay", persona: "marco" }, replaying && mode.persona === "marco")}
+          {modeButton("Replay: Sanktion", { kind: "replay", persona: "sanction_test" }, replaying && mode.persona === "sanction_test")}
         </div>
       </header>
       <div className="split">

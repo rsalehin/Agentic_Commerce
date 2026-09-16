@@ -37,7 +37,7 @@ def build_bundle(persona: str) -> dict[str, Any]:
 
 def main() -> None:
     UI_REPLAY_DIR.mkdir(parents=True, exist_ok=True)
-    for persona in ("lena", "marco"):
+    for persona in ("lena", "marco", "sanction_test"):
         bundle = build_bundle(persona)
         path = UI_REPLAY_DIR / f"{persona}.json"
         path.write_text(json.dumps(bundle, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
